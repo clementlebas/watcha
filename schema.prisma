@@ -69,6 +69,9 @@ model PostNote {
   color                     String?
   isBookmark                Boolean         @default(false)
   urlImage                  String?
+  imageKey                  String?
+  file                      File?           @relation(fields: [fileId], references: [id])
+  fileId                    String?         @unique
 }
 
 model PostArticle {
@@ -111,6 +114,8 @@ model File {
   type                      String
   key                       String
   uploadUrl                 String
+
+  postNote                  PostNote?
 }
 
 model DailyStats {

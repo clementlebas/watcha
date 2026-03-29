@@ -321,12 +321,12 @@ page AdminMessagesPage {
 
 query getNotes {
   fn: import { getNotes } from "@src/watcha/operations",
-  entities: [PostNote]
+  entities: [PostNote, File]
 }
 
 action createNote {
   fn: import { createNote } from "@src/watcha/operations",
-  entities: [PostNote]
+  entities: [PostNote, File]
 }
 
 action updateNote {

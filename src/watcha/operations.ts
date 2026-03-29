@@ -21,6 +21,7 @@ export const getNotes: GetNotes<void, PostNote[]> = async (_args, context) => {
   return context.entities.PostNote.findMany({
     where: { userId: context.user.id },
     orderBy: { createdAt: 'desc' },
+    include: { file: true }
   });
 };
 
@@ -33,15 +34,18 @@ type CreateNoteArgs = {
   categories?: string[];
   color?: string;
   urlImage?: string;
+  imageKey?: string;
+  fileId?: string;
 };
 
-export const createNote: CreateNote<CreateNoteArgs, PostNote> = async (args, context) => {
+export const createNote: CreateNote<CreateNoteArgs, PostNote> = async ({ fileId, ...args }, context) => {
   if (!context.user) throw new HttpError(401, 'User must be logged in');
 
   return context.entities.PostNote.create({
     data: {
       ...args,
       user: { connect: { id: context.user.id } },
+      ...(fileId && { file: { connect: { id: fileId } } }),
     },
   });
 };

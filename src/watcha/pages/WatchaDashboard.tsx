@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useAction } from 'wasp/client/operations';
-import { getNotes, createNote, deleteNote } from 'wasp/client/operations';
-import { Search, Plus, Trash2, Clock, Tag, Calendar } from 'lucide-react';
+import { getNotes, createNote, deleteNote, getDownloadFileSignedURL } from 'wasp/client/operations';
+import { Search, Plus, Trash2, Clock, Tag, Calendar, Image as ImageIcon, X, Upload } from 'lucide-react';
+import { uploadFileWithProgress, validateFile, type FileWithValidType } from '../../file-upload/fileUploading';
 
 export default function DashboardPage() {
   const { data: notes, isLoading } = useQuery(getNotes);
@@ -11,6 +12,9 @@ export default function DashboardPage() {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [searchValue, setSearchValue] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Today's date check mapping exact Wewatch logic
   const dateOfTheDay = new Date().toLocaleDateString('en-US', {
@@ -23,19 +27,45 @@ export default function DashboardPage() {
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title && !text) return;
+    if (!title && !text && !selectedFile) return;
+    
+    setIsUploading(true);
     try {
+      let fileId: string | undefined = undefined;
+      
+      if (selectedFile) {
+        const validationError = validateFile(selectedFile);
+        if (validationError) {
+          alert(validationError.message);
+          setIsUploading(false);
+          return;
+        }
+        
+        const result = await uploadFileWithProgress({ 
+          file: selectedFile as FileWithValidType, 
+          setUploadProgressPercent: setUploadProgress 
+        });
+        // @ts-ignore
+        fileId = result.fileId;
+      }
+
       await createNoteFn({
-        title: title || 'Untitled',
+        title: title || (selectedFile ? 'Image Note' : 'Untitled'),
         text,
         date: dateOfTheDay,
-        color: '#8dafce', // Default Watcha blue
+        color: '#8dafce',
         categories: [],
+        fileId,
       });
       setTitle('');
       setText('');
+      setSelectedFile(null);
+      setUploadProgress(0);
     } catch (err) {
-      console.error(err);
+      console.error('Upload failed:', err);
+      alert("L'image n'a pas pu être uploadée. Veuillez vérifier votre connexion ou choisir une autre image.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -94,12 +124,37 @@ export default function DashboardPage() {
               className="w-full h-32 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-6 focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
             />
             
-            <div className="flex justify-end">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="w-full md:w-auto">
+                <label className="flex items-center gap-2 cursor-pointer bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 px-4 py-2 rounded-xl transition-all border border-dashed border-neutral-300 dark:border-neutral-500">
+                  <Upload size={18} className="text-blue-500" />
+                  <span className="text-sm font-medium">
+                    {selectedFile ? selectedFile.name : 'Add an image'}
+                  </span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  {selectedFile && (
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
+                      className="ml-2 text-neutral-400 hover:text-red-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </label>
+              </div>
+
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 flex items-center gap-2"
+                disabled={isUploading}
+                className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                Save Note
+                {isUploading ? 'Uploading...' : 'Save Note'}
               </button>
             </div>
           </form>
@@ -152,6 +207,14 @@ export default function DashboardPage() {
                 </button>
               </div>
               
+              {/* @ts-ignore */}
+              {note.file && (
+                <div className="mb-4 rounded-2xl overflow-hidden border border-neutral-100 dark:border-neutral-700 aspect-video bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+                  {/* @ts-ignore */}
+                  <NoteImage fileKey={note.file.key} title={note.title} />
+                </div>
+              )}
+
               <p className="text-neutral-600 dark:text-neutral-300 flex-grow line-clamp-4 leading-relaxed">
                 {note.text || 'No description provided.'}
               </p>
@@ -175,3 +238,23 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+const NoteImage = ({ fileKey, title }: { fileKey: string; title?: string | null }) => {
+  const { data: downloadUrl, isLoading } = useQuery(getDownloadFileSignedURL, { key: fileKey });
+  
+  if (isLoading || !downloadUrl) {
+    return <div className="w-full h-full bg-neutral-100 dark:bg-neutral-800 animate-pulse flex items-center justify-center">
+      <ImageIcon size={24} className="text-neutral-300" />
+    </div>;
+  }
+
+  return (
+    <img 
+      src={downloadUrl} 
+      className="w-full h-full object-cover transition-opacity duration-300" 
+      alt={title || 'Note image'}
+      onLoad={(e) => (e.currentTarget.style.opacity = '1')}
+      style={{ opacity: 0 }}
+    />
+  );
+};

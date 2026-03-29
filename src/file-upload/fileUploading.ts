@@ -10,18 +10,39 @@ interface FileUploadProgress {
 }
 
 export async function uploadFileWithProgress({ file, setUploadProgressPercent }: FileUploadProgress) {
-  const { s3UploadUrl, s3UploadFields } = await createFile({ fileType: file.type, fileName: file.name });
+  // @ts-ignore
+  const { s3UploadUrl, s3UploadFields, fileId } = await createFile({ fileType: file.type, fileName: file.name });
 
   const formData = getFileUploadFormData(file, s3UploadFields);
 
-  return axios.post(s3UploadUrl, formData, {
-    onUploadProgress: (progressEvent) => {
-      if (progressEvent.total) {
-        const percentage = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+  return new Promise<{ fileId: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentage = Math.round((event.loaded / event.total) * 100);
         setUploadProgressPercent(percentage);
       }
-    },
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ fileId });
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error during file upload'));
+    };
+
+    xhr.open('POST', s3UploadUrl, true);
+    xhr.send(formData);
   });
+
+  // @ts-ignore
+  return { fileId };
 }
 
 function getFileUploadFormData(file: File, s3UploadFields: Record<string, string>) {

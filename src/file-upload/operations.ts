@@ -37,7 +37,7 @@ export const createFile: CreateFile<
     userId: context.user.id,
   });
 
-  await context.entities.File.create({
+  const file = await context.entities.File.create({
     data: {
       name: fileName,
       key,
@@ -50,6 +50,7 @@ export const createFile: CreateFile<
   return {
     s3UploadUrl,
     s3UploadFields,
+    fileId: file.id,
   };
 };
 
