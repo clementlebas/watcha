@@ -1,6 +1,6 @@
 import { type AuthUser } from 'wasp/auth';
 import { FC, ReactNode, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import Header from './Header';
 import Sidebar from './Sidebar';
 

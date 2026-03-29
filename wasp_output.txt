@@ -1,0 +1,355 @@
+[33m
+🐝 --- Starting compilation and setup phase. Hold tight... ------------------------
+[0m
+[33m
+🐝 --- Compiling wasp project... --------------------------------------------------
+[0m
+[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+[33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m (node:73182) ExperimentalWarning: glob is an experimental feature and might change at any time
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m (Use `node --trace-warnings ...` to show where the warning was created)
+[33m[[0m  [33mWasp[0m  [33m][0m [copy-assets] 0 copied, 11 skipped[33m
+✅ --- SDK built successfully. ----------------------------------------------------
+[0m
+[33m
+✅ --- Your wasp project has successfully compiled. -------------------------------
+[0m
+[33m
+🐝 --- Listening for file changes... ----------------------------------------------
+[0m
+[33m
+🐝 --- Starting up generated project... -------------------------------------------
+[0m
+
+[35m[[0m [35mServer[0m [35m][0m > @wasp.sh/generated-server@0.0.0 watch
+[35m[[0m [35mServer[0m [35m][0m > nodemon --exec 'npm run bundle-and-start || exit 1'
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m [33m[nodemon] 2.0.22[39m
+[35m[[0m [35mServer[0m [35m][0m [33m[nodemon] to restart at any time, enter `rs`[39m
+[35m[[0m [35mServer[0m [35m][0m [33m[nodemon] watching path(s): src/**/* ../../../src/**/* .env[39m
+[35m[[0m [35mServer[0m [35m][0m [33m[nodemon] watching extensions: ts,mts,js,mjs,json[39m
+[35m[[0m [35mServer[0m [35m][0m [32m[nodemon] starting `npm run bundle-and-start || exit 1`[39m
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m > @wasp.sh/generated-server@0.0.0 bundle-and-start
+[35m[[0m [35mServer[0m [35m][0m > npm run bundle && npm run start
+[35m[[0m [35mServer[0m [35m][0m 
+[36m[[0m [36mClient[0m [36m][0m Port 5173 is in use, trying another one...
+[36m[[0m [36mClient[0m [36m][0m 
+[36m[[0m [36mClient[0m [36m][0m   VITE v7.3.1  ready in 136 ms
+[36m[[0m [36mClient[0m [36m][0m 
+[36m[[0m [36mClient[0m [36m][0m   ➜  Local:   http://localhost:5174/
+[36m[[0m [36mClient[0m [36m][0m   ➜  Network: use --host to expose
+[36m[[0m [36mClient[0m [36m][0m   ➜  press h + enter to show help
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m > @wasp.sh/generated-server@0.0.0 bundle
+[35m[[0m [35mServer[0m [35m][0m > tsc --build && rollup --config --silent
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m > @wasp.sh/generated-server@0.0.0 start
+[35m[[0m [35mServer[0m [35m][0m > node --enable-source-maps -r dotenv/config bundle/server.js
+[35m[[0m [35mServer[0m [35m][0m 
+[35m[[0m [35mServer[0m [35m][0m 🚀 "Google" auth initialized
+[35m[[0m [35mServer[0m [35m][0m 🚀 "Email and password" auth initialized
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m (node:73392) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m (Use `node --trace-deprecation ...` to show where the warning was created)
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m Port 3001 is already in use
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error Lifecycle script `start` failed with error:
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error code 1
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error workspace @wasp.sh/generated-server@0.0.0
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command failed
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command sh -c node --enable-source-maps -r dotenv/config bundle/server.js
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error Lifecycle script `bundle-and-start` failed with error:
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error code 1
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error workspace @wasp.sh/generated-server@0.0.0
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command failed
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command sh -c npm run bundle && npm run start
+[35m[[0m [35mServer[0m [35m][0m [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m node:events:502
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m       throw er; // Unhandled 'error' event
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m       ^
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m 
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m Error: read EIO
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m     at TTY.onStreamRead (node:internal/stream_base_commons:216:20)
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m Emitted 'error' event on ReadStream instance at:
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m     at emitErrorNT (node:internal/streams/destroy:170:8)
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m   errno: -5,
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m   code: 'EIO',
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m   syscall: 'read'
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m }
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m 
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m Node.js v22.12.0
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m node:events:502
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m       throw er; // Unhandled 'error' event
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m       ^
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m 
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m Error: read EIO
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at TTY.onStreamRead (node:internal/stream_base_commons:216:20)
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m Emitted 'error' event on Interface instance at:
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at ReadStream.onerror (node:internal/readline/interface:238:10)
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at ReadStream.emit (node:events:524:28)
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at emitErrorNT (node:internal/streams/destroy:170:8)
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m   errno: -5,
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m   code: 'EIO',
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m   syscall: 'read'
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m }
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m 
+[36m[[0m [36mClient[0m[1m[31m![0m[36m][0m Node.js v22.12.0
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error Lifecycle script `watch` failed with error:
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error code 1
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error workspace @wasp.sh/generated-server@0.0.0
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/server
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command failed
+[35m[[0m [35mServer[0m[1m[31m![0m[35m][0m npm error command sh -c nodemon --exec 'npm run bundle-and-start || exit 1'[33m
+🐝 --- Recompiling on file change... ----------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m Starting npm install
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m up to date, audited 734 packages in 761ms
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m 105 packages are looking for funding
+[33m[[0m  [33mWasp[0m  [33m][0m   run `npm fund` for details
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m 8 vulnerabilities (5 low, 3 high)
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m To address issues that do not require attention, run:
+[33m[[0m  [33mWasp[0m  [33m][0m   npm audit fix
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m To address all issues (including breaking changes), run:
+[33m[[0m  [33mWasp[0m  [33m][0m   npm audit fix --force
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m Run `npm audit` for details.[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+
+[34m[[0m   [34mDb[0m   [34m][0m No difference detected.
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m Environment variables loaded from .env
+[34m[[0m   [34mDb[0m   [34m][0m Prisma schema loaded from ../db/schema.prisma
+[34m[[0m   [34mDb[0m   [34m][0m Datasource "db": PostgreSQL database "OpenSaaS-f609b69be4", schema "public" at "localhost:5432"
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m 2 migrations found in prisma/migrations
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m Database schema is up to date!
+[34m[[0m   [34mDb[0m   [34m][0m Environment variables loaded from .env
+[34m[[0m   [34mDb[0m   [34m][0m Prisma schema loaded from ../db/schema.prisma
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m ✔ Generated Prisma Client (v5.19.1) to ./../../../node_modules/@prisma/client in 90ms
+[34m[[0m   [34mDb[0m   [34m][0m [33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m (node:73943) ExperimentalWarning: glob is an experimental feature and might change at any time
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m (Use `node --trace-warnings ...` to show where the warning was created)
+[33m[[0m  [33mWasp[0m  [33m][0m [copy-assets] 0 copied, 11 skipped[33m
+✅ --- SDK built successfully. ----------------------------------------------------
+[0m
+[33m
+✅ --- Your wasp project has successfully compiled. -------------------------------
+[0m
+[33m
+✅ --- Recompilation on file change succeeded. ------------------------------------
+[0m
+[33m
+🐝 --- Recompiling on file change... ----------------------------------------------
+[0m
+[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+[33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/components/WaspApp.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/index.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/pages/createAuthRequiredPage.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error Lifecycle script `build` failed with error:
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error code 2
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error workspace wasp@1.0.0
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command failed
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command sh -c tsc && node ./scripts/copy-assets.js[31m
+
+❌ --- [Error] Your wasp project failed to compile: -------------------------------
+
+- SDK build failed with exit code: 2[0m
+[31m
+
+❌ --- [Error] Recompilation on file change failed.: ------------------------------
+
+1 errors found[0m
+[33m
+🐝 --- Recompiling on file change... ----------------------------------------------
+[0m
+[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+[33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/components/WaspApp.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/index.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/pages/createAuthRequiredPage.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error Lifecycle script `build` failed with error:
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error code 2
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error workspace wasp@1.0.0
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command failed
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command sh -c tsc && node ./scripts/copy-assets.js[31m
+
+❌ --- [Error] Your wasp project failed to compile: -------------------------------
+
+- SDK build failed with exit code: 2[0m
+[31m
+
+❌ --- [Error] Recompilation on file change failed.: ------------------------------
+
+1 errors found[0m
+[33m
+🐝 --- Recompiling on file change... ----------------------------------------------
+[0m
+[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+[33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/components/WaspApp.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/index.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m  [33m][0m error TS5055: Cannot write file '/Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp/dist/client/app/pages/createAuthRequiredPage.d.ts' because it would overwrite input file.
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error Lifecycle script `build` failed with error:
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error code 2
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error workspace wasp@1.0.0
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command failed
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command sh -c tsc && node ./scripts/copy-assets.js[31m
+
+❌ --- [Error] Your wasp project failed to compile: -------------------------------
+
+- SDK build failed with exit code: 2[0m
+[31m
+
+❌ --- [Error] Recompilation on file change failed.: ------------------------------
+
+1 errors found[0m
+[33m
+🐝 --- Recompiling on file change... ----------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m Starting npm install
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m up to date, audited 734 packages in 758ms
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m 105 packages are looking for funding
+[33m[[0m  [33mWasp[0m  [33m][0m   run `npm fund` for details
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m 8 vulnerabilities (5 low, 3 high)
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m To address issues that do not require attention, run:
+[33m[[0m  [33mWasp[0m  [33m][0m   npm audit fix
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m To address all issues (including breaking changes), run:
+[33m[[0m  [33mWasp[0m  [33m][0m   npm audit fix --force
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m Run `npm audit` for details.[33m
+✅ --- Successfully completed npm install. ----------------------------------------
+[0m
+[33m
+🐝 --- Setting up database... -----------------------------------------------------
+[0m
+
+[34m[[0m   [34mDb[0m   [34m][0m No difference detected.
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m Environment variables loaded from .env
+[34m[[0m   [34mDb[0m   [34m][0m Prisma schema loaded from ../db/schema.prisma
+[34m[[0m   [34mDb[0m   [34m][0m Datasource "db": PostgreSQL database "OpenSaaS-f609b69be4", schema "public" at "localhost:5432"
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m 2 migrations found in prisma/migrations
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m Database schema is up to date!
+[34m[[0m   [34mDb[0m   [34m][0m Environment variables loaded from .env
+[34m[[0m   [34mDb[0m   [34m][0m Prisma schema loaded from ../db/schema.prisma
+[34m[[0m   [34mDb[0m   [34m][0m 
+[34m[[0m   [34mDb[0m   [34m][0m ✔ Generated Prisma Client (v5.19.1) to ./../../../node_modules/@prisma/client in 114ms
+[34m[[0m   [34mDb[0m   [34m][0m [33m
+✅ --- Database successfully set up. ----------------------------------------------
+[0m
+[33m
+🐝 --- Building SDK... ------------------------------------------------------------
+[0m
+
+[33m[[0m  [33mWasp[0m  [33m][0m > wasp@1.0.0 build
+[33m[[0m  [33mWasp[0m  [33m][0m > tsc && node ./scripts/copy-assets.js
+[33m[[0m  [33mWasp[0m  [33m][0m 
+[33m[[0m  [33mWasp[0m  [33m][0m src/client/Main.tsx(3,37): error TS2307: Cannot find module 'wasp/client/app' or its corresponding type declarations.
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error Lifecycle script `build` failed with error:
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error code 2
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error path /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error workspace wasp@1.0.0
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error location /Users/clement.le-bas/Dev/WatchaV2/app/.wasp/out/sdk/wasp
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command failed
+[33m[[0m  [33mWasp[0m [1m[31m![0m[33m][0m npm error command sh -c tsc && node ./scripts/copy-assets.js

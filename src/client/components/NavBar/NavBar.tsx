@@ -1,6 +1,6 @@
 import { LogIn, Menu } from 'lucide-react';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Link as ReactRouterLink } from 'react-router-dom';
+import { Link as ReactRouterLink } from 'react-router';
 import { useAuth } from 'wasp/client/auth';
 import { Link as WaspRouterLink, routes } from 'wasp/client/router';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../../components/ui/sheet';
@@ -8,10 +8,8 @@ import { cn } from '../../../lib/utils';
 import { throttleWithTrailingInvocation } from '../../../shared/utils';
 import { UserDropdown } from '../../../user/UserDropdown';
 import { UserMenuItems } from '../../../user/UserMenuItems';
-import { useIsLandingPage } from '../../hooks/useIsLandingPage';
 import logo from '../../static/logo.webp';
 import DarkModeSwitcher from '../DarkModeSwitcher';
-import { Announcement } from './Announcement';
 
 export interface NavigationItem {
   name: string;
@@ -20,7 +18,6 @@ export interface NavigationItem {
 
 export default function NavBar({ navigationItems }: { navigationItems: NavigationItem[] }) {
   const [isScrolled, setIsScrolled] = useState(false);
-  const isLandingPage = useIsLandingPage();
 
   useEffect(() => {
     const throttledHandler = throttleWithTrailingInvocation(() => {
@@ -36,8 +33,6 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
   }, []);
 
   return (
-    <>
-      {isLandingPage && <Announcement />}
       <header className={cn('sticky top-0 z-50 transition-all duration-300', isScrolled && 'top-4')}>
         <div
           className={cn('transition-all duration-300', {
@@ -56,7 +51,7 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
             <div className='flex items-center gap-6'>
               <WaspRouterLink
                 to={routes.LandingPageRoute.to}
-                className='flex items-center text-foreground duration-300 ease-in-out hover:text-primary transition-colors'
+                className='flex items-center transition-colors duration-300 ease-in-out text-foreground hover:text-primary'
               >
                 <NavLogo isScrolled={isScrolled} />
                 <span
@@ -69,7 +64,7 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
                 </span>
               </WaspRouterLink>
 
-              <ul className='hidden lg:flex items-center gap-6 ml-4'>
+              <ul className='items-center hidden gap-6 ml-4 lg:flex'>
                 {renderNavigationItems(navigationItems)}
               </ul>
             </div>
@@ -78,7 +73,6 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
           </nav>
         </div>
       </header>
-    </>
   );
 }
 
@@ -86,8 +80,8 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
   const { data: user, isLoading: isUserLoading } = useAuth();
 
   return (
-    <div className='hidden lg:flex lg:flex-1 gap-3 justify-end items-center'>
-      <ul className='flex justify-center items-center gap-2 sm:gap-4'>
+    <div className='items-center justify-end hidden gap-3 lg:flex lg:flex-1'>
+      <ul className='flex items-center justify-center gap-2 sm:gap-4'>
         <DarkModeSwitcher />
       </ul>
       {isUserLoading ? null : !user ? (
@@ -98,7 +92,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
             'text-xs': isScrolled,
           })}
         >
-          <div className='flex items-center duration-300 ease-in-out text-foreground hover:text-primary transition-colors'>
+          <div className='flex items-center transition-colors duration-300 ease-in-out text-foreground hover:text-primary'>
             Log in{' '}
             <LogIn
               size={isScrolled ? '1rem' : '1.1rem'}
@@ -157,13 +151,13 @@ function NavBarMobileMenu({
               </WaspRouterLink>
             </SheetTitle>
           </SheetHeader>
-          <div className='mt-6 flow-root'>
+          <div className='flow-root mt-6'>
             <div className='-my-6 divide-y divide-border'>
-              <ul className='space-y-2 py-6'>{renderNavigationItems(navigationItems, setMobileMenuOpen)}</ul>
+              <ul className='py-6 space-y-2'>{renderNavigationItems(navigationItems, setMobileMenuOpen)}</ul>
               <div className='py-6'>
                 {isUserLoading ? null : !user ? (
                   <WaspRouterLink to={routes.LoginRoute.to}>
-                    <div className='flex justify-end items-center duration-300 ease-in-out text-foreground hover:text-primary transition-colors'>
+                    <div className='flex items-center justify-end transition-colors duration-300 ease-in-out text-foreground hover:text-primary'>
                       Log in <LogIn size='1.1rem' className='ml-1' />
                     </div>
                   </WaspRouterLink>

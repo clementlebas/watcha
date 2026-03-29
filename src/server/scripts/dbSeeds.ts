@@ -1,9 +1,9 @@
 import { type User } from 'wasp/entities';
 import { faker } from '@faker-js/faker';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { getSubscriptionPaymentPlanIds, SubscriptionStatus } from '../../payment/plans';
 
-type MockUserData = Omit<User, 'id'>;
+type MockUserData = Prisma.UserCreateInput;
 
 /**
  * This function, which we've imported in `app.db.seeds` in the `main.wasp` file,

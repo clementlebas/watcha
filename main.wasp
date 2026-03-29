@@ -1,6 +1,6 @@
 app OpenSaaS {
   wasp: {
-    version: "^0.18.0"
+    version: "^0.21.0"
   },
 
   title: "WatchaV2",
@@ -69,7 +69,7 @@ app OpenSaaS {
       // }
     },
     onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/demo-app",
+    onAuthSucceededRedirectTo: "/watcha",
   },
 
   db: {
@@ -101,6 +101,14 @@ route LandingPageRoute { path: "/", to: LandingPage }
 page LandingPage {
   component: import LandingPage from "@src/landing-page/LandingPage"
 }
+
+//#region WatchaV2 Pages
+route WatchaDashboardRoute { path: "/watcha", to: WatchaDashboardPage }
+page WatchaDashboardPage {
+  authRequired: true,
+  component: import WatchaDashboard from "@src/watcha/pages/WatchaDashboard"
+}
+//#endregion
 
 //#region Auth Pages
 route LoginRoute { path: "/login", to: LoginPage }
@@ -244,6 +252,7 @@ query getDailyStats {
   entities: [User, DailyStats]
 }
 
+/*
 job dailyStatsJob {
   executor: PgBoss,
   perform: {
@@ -255,6 +264,8 @@ job dailyStatsJob {
   },
   entities: [User, DailyStats, Logs, PageViewSource]
 }
+*/
+
 //#endregion
 
 //#region Admin Dashboard
@@ -304,4 +315,48 @@ page AdminMessagesPage {
   authRequired: true,
   component: import AdminMessages from "@src/admin/dashboards/messages/MessagesPage"
 }
+//#endregion
+
+//#region WatchaV2 Operations
+
+query getNotes {
+  fn: import { getNotes } from "@src/watcha/operations",
+  entities: [PostNote]
+}
+
+action createNote {
+  fn: import { createNote } from "@src/watcha/operations",
+  entities: [PostNote]
+}
+
+action updateNote {
+  fn: import { updateNote } from "@src/watcha/operations",
+  entities: [PostNote]
+}
+
+action deleteNote {
+  fn: import { deleteNote } from "@src/watcha/operations",
+  entities: [PostNote]
+}
+
+query getArticles {
+  fn: import { getArticles } from "@src/watcha/operations",
+  entities: [PostArticle]
+}
+
+action createArticle {
+  fn: import { createArticle } from "@src/watcha/operations",
+  entities: [PostArticle]
+}
+
+action deleteArticle {
+  fn: import { deleteArticle } from "@src/watcha/operations",
+  entities: [PostArticle]
+}
+
+action updateUserSettings {
+  fn: import { updateUserSettings } from "@src/watcha/operations",
+  entities: [User]
+}
+
 //#endregion
