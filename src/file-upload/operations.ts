@@ -5,9 +5,10 @@ import {
   type CreateFile,
   type GetAllFilesByUser,
   type GetDownloadFileSignedURL,
+  type DeleteFile,
 } from 'wasp/server/operations';
 
-import { getUploadFileSignedURLFromS3, getDownloadFileSignedURLFromS3 } from './s3Utils';
+import { getUploadFileSignedURLFromS3, getDownloadFileSignedURLFromS3, deleteFileFromS3 } from './s3Utils';
 import { ensureArgsSchemaOrThrowHttpError } from '../server/validation';
 import { ALLOWED_FILE_TYPES } from './validation';
 
@@ -80,4 +81,50 @@ export const getDownloadFileSignedURL: GetDownloadFileSignedURL<
 > = async (rawArgs, _context) => {
   const { key } = ensureArgsSchemaOrThrowHttpError(getDownloadFileSignedURLInputSchema, rawArgs);
   return await getDownloadFileSignedURLFromS3({ key });
+};
+
+const deleteFileInputSchema = z.object({ id: z.string().nonempty() });
+
+type DeleteFileInput = z.infer<typeof deleteFileInputSchema>;
+
+export const deleteFile: DeleteFile<DeleteFileInput, void> = async (rawArgs, context) => {
+  if (!context.user) {
+    throw new HttpError(401, 'Must be logged in');
+  }
+  if (!context.user.isAdmin) {
+    throw new HttpError(403, 'Must be an admin to delete files');
+  }
+
+  const { id } = ensureArgsSchemaOrThrowHttpError(deleteFileInputSchema, rawArgs);
+
+  const file = await context.entities.File.findUnique({
+    where: { id },
+  });
+
+  if (!file) {
+    throw new HttpError(404, 'File not found');
+  }
+
+  // Remove from S3
+  try {
+    await deleteFileFromS3(file.key);
+  } catch (err) {
+    console.error('Failed to delete file from S3', err);
+    throw new HttpError(500, 'Failed to delete file from S3');
+  }
+
+  // First delete any PostNote that uses this file to avoid foreign key constraints,
+  // or simply delete the file if cascade logic isn't strictly there
+  // Actually PostNote has a nullable fileId, so we can just set fileId to null or let Prisma handle it if it cascades or delete the File.
+  // Wait, if PostNote references File, we might need to nullify it first if cascade isn't set.
+  // We'll update any PostNote that references this file, setting fileId to null.
+  await context.entities.PostNote.updateMany({
+    where: { fileId: id },
+    data: { fileId: null },
+  });
+
+  // Remove from DB
+  await context.entities.File.delete({
+    where: { id },
+  });
 };

@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { routes } from 'wasp/client/router';
+import { useAuth } from 'wasp/client/auth';
 import './Main.css';
 import NavBar from './components/NavBar/NavBar';
-import { demoNavigationitems, marketingNavigationItems } from './components/NavBar/constants';
+import { getAppNavigationItems, marketingNavigationItems } from './components/NavBar/constants';
 import CookieConsentBanner from './components/cookie-consent/Banner';
 
 /**
@@ -12,11 +13,16 @@ import CookieConsentBanner from './components/cookie-consent/Banner';
  */
 export default function App() {
   const location = useLocation();
+  const { data: user } = useAuth();
+
   const isMarketingPage = useMemo(() => {
     return location.pathname === '/' || location.pathname.startsWith('/pricing');
   }, [location]);
 
-  const navigationItems = isMarketingPage ? marketingNavigationItems : demoNavigationitems;
+  const navigationItems = useMemo(() => {
+    if (isMarketingPage) return marketingNavigationItems;
+    return getAppNavigationItems(!!user?.isAdmin);
+  }, [isMarketingPage, user]);
 
   const shouldDisplayAppNavBar = useMemo(() => {
     return (

@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { getAllFilesByUser, getDownloadFileSignedURL, useQuery } from 'wasp/client/operations';
+import { getAllFilesByUser, getDownloadFileSignedURL, deleteFile, useQuery, useAction } from 'wasp/client/operations';
 import type { File } from 'wasp/entities';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Image as ImageIcon } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -20,6 +21,8 @@ export default function FileUploadPage() {
   const [fileKeyForS3, setFileKeyForS3] = useState<File['key']>('');
   const [uploadProgressPercent, setUploadProgressPercent] = useState<number>(0);
   const [uploadError, setUploadError] = useState<FileUploadError | null>(null);
+
+  const deleteFileFn = useAction(deleteFile);
 
   const allUserFiles = useQuery(getAllFilesByUser, undefined, {
     // We disable automatic refetching because otherwise files would be refetched after `createFile` is called and the S3 URL is returned,
@@ -159,14 +162,31 @@ export default function FileUploadPage() {
                         )}
                       >
                         <p className='text-foreground font-medium'>{file.name}</p>
-                        <Button
-                          onClick={() => setFileKeyForS3(file.key)}
-                          disabled={file.key === fileKeyForS3 && isDownloadUrlLoading}
-                          variant='outline'
-                          size='sm'
-                        >
-                          {file.key === fileKeyForS3 && isDownloadUrlLoading ? 'Loading...' : 'Download'}
-                        </Button>
+                        <div className="flex gap-2 mt-4 sm:mt-0">
+                          <Button
+                            onClick={() => setFileKeyForS3(file.key)}
+                            disabled={file.key === fileKeyForS3 && isDownloadUrlLoading}
+                            variant='outline'
+                            size='sm'
+                          >
+                            {file.key === fileKeyForS3 && isDownloadUrlLoading ? 'Loading...' : 'Download'}
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to delete this file?')) {
+                                await deleteFileFn({ id: file.id });
+                                allUserFiles.refetch();
+                              }
+                            }}
+                            variant='destructive'
+                            size='sm'
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-xl overflow-hidden border border-neutral-100 dark:border-neutral-700 h-48 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+                        <FilePreview fileKey={file.key} title={file.name} type={file.type} />
                       </div>
                     </Card>
                   ))}
@@ -181,3 +201,27 @@ export default function FileUploadPage() {
     </div>
   );
 }
+
+const FilePreview = ({ fileKey, title, type }: { fileKey: string; title: string, type: string }) => {
+  const { data: downloadUrl, isLoading } = useQuery(getDownloadFileSignedURL, { key: fileKey });
+
+  if (isLoading || !downloadUrl) {
+    return <div className="w-full h-full bg-neutral-100 dark:bg-neutral-800 animate-pulse flex items-center justify-center">
+      <ImageIcon size={24} className="text-neutral-300" />
+    </div>;
+  }
+
+  if (!type.startsWith('image/')) {
+    return <div className="p-4 text-center text-muted-foreground break-all">No preview for {type} File</div>;
+  }
+
+  return (
+    <img 
+      src={downloadUrl} 
+      className="w-full h-full object-contain transition-opacity duration-300" 
+      alt={title}
+      onLoad={(e) => (e.currentTarget.style.opacity = '1')}
+      style={{ opacity: 0 }}
+    />
+  );
+};

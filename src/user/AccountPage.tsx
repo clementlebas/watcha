@@ -39,6 +39,17 @@ export default function AccountPage({ user }: { user: User }) {
             <Separator />
             <div className='py-4 px-6'>
               <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
+                <dt className='text-sm font-medium text-muted-foreground'>Status</dt>
+                <dd className='mt-1 text-sm sm:col-span-2 sm:mt-0'>
+                  <span className={`font-semibold px-2 py-1 inline-flex text-xs leading-5 rounded-full ${user.subscriptionStatus === SubscriptionStatus.Active ? 'bg-blue-100 text-blue-800' : 'bg-neutral-100 text-neutral-800'}`}>
+                    {user.subscriptionStatus === SubscriptionStatus.Active ? 'PRO' : 'FREE'}
+                  </span>
+                </dd>
+              </div>
+            </div>
+            <Separator />
+            <div className='py-4 px-6'>
+              <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
                 <dt className='text-sm font-medium text-muted-foreground'>Your Plan</dt>
                 <UserCurrentPaymentPlan
                   subscriptionStatus={user.subscriptionStatus as SubscriptionStatus}

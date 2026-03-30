@@ -156,11 +156,6 @@ action updateIsUserAdminById {
 //#endregion
 
 //#region Demo AI App
-route DemoAppRoute { path: "/demo-app", to: DemoAppPage }
-page DemoAppPage {
-  authRequired: true,
-  component: import DemoAppPage from "@src/demo-ai-app/DemoAppPage"
-}
 
 action generateGptResponse {
   fn: import { generateGptResponse } from "@src/demo-ai-app/operations",
@@ -243,6 +238,11 @@ query getAllFilesByUser {
 query getDownloadFileSignedURL {
   fn: import { getDownloadFileSignedURL } from "@src/file-upload/operations",
   entities: [User, File]
+}
+
+action deleteFile {
+  fn: import { deleteFile } from "@src/file-upload/operations",
+  entities: [User, File, PostNote]
 }
 //#endregion
 

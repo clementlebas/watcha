@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useAction } from 'wasp/client/operations';
+import { useAuth } from 'wasp/client/auth';
 import { getNotes, createNote, deleteNote, getDownloadFileSignedURL } from 'wasp/client/operations';
+import { SubscriptionStatus } from '../../payment/plans';
 import { Search, Plus, Trash2, Clock, Tag, Calendar, Image as ImageIcon, X, Upload } from 'lucide-react';
 import { uploadFileWithProgress, validateFile, type FileWithValidType } from '../../file-upload/fileUploading';
 
@@ -8,6 +10,10 @@ export default function DashboardPage() {
   const { data: notes, isLoading } = useQuery(getNotes);
   const createNoteFn = useAction(createNote);
   const deleteNoteFn = useAction(deleteNote);
+
+  const { data: user } = useAuth();
+  const titleText = user?.subscriptionStatus === SubscriptionStatus.Active ? 'Statut : PRO' : 'Statut : FREE';
+  const titleColor = user?.subscriptionStatus === SubscriptionStatus.Active ? 'text-blue-500' : 'text-neutral-500';
 
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
@@ -83,8 +89,11 @@ export default function DashboardPage() {
       
       {/* HEADER */}
       <header className="mb-10 text-center md:text-left">
-        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm">
+        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm flex items-center gap-4 justify-center md:justify-start">
           Welcome to Watcha
+          <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${user?.subscriptionStatus === SubscriptionStatus.Active ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800' : 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700'}`}>
+            {user?.subscriptionStatus === SubscriptionStatus.Active ? 'PRO' : 'FREE'}
+          </span>
         </h1>
         <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-lg">
           Track your daily learning progress and feed.

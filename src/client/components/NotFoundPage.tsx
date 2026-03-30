@@ -10,7 +10,7 @@ export function NotFoundPage() {
         <h1 className='text-6xl font-bold  mb-4'>404</h1>
         <p className='text-lg text-bodydark mb-8'>Oops! The page you're looking for doesn't exist.</p>
         <WaspRouterLink
-          to={user ? routes.DemoAppRoute.to : routes.LandingPageRoute.to}
+          to={user ? routes.WatchaDashboardRoute.to : routes.LandingPageRoute.to}
           className='inline-block px-8 py-3 text-accent-foreground font-semibold bg-accent rounded-lg hover:bg-accent/90 transition duration-300'
         >
           Go Back Home
