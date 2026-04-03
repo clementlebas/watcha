@@ -7,9 +7,95 @@ import {
   type GetArticles,
   type CreateArticle,
   type DeleteArticle,
-  type UpdateUserSettings
+  type UpdateUserSettings,
+  type GetUserStatistics
 } from 'wasp/server/operations';
 import { HttpError } from 'wasp/server';
+
+// ==========================================
+// STATISTICS
+// ==========================================
+
+type TimeByCategory = {
+  name: string;
+  totalSeconds: number;
+};
+
+type ActivityDay = {
+  date: string;
+  count: number;
+};
+
+type UserStatisticsResult = {
+  totalNotes: number;
+  totalTimeSeconds: number;
+  averageTimeSeconds: number;
+  timeByCategory: TimeByCategory[];
+  topTags: string[];
+  activityTimeline: ActivityDay[];
+};
+
+export const getUserStatistics: GetUserStatistics<void, UserStatisticsResult> = async (_args, context) => {
+  if (!context.user) throw new HttpError(401, 'User must be logged in');
+
+  const notes = await context.entities.PostNote.findMany({
+    where: { userId: context.user.id },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const totalNotes = notes.length;
+
+  // Total & average time (uses elapsedTimeInSecond field)
+  const totalTimeSeconds = notes.reduce((sum, n) => sum + (n.elapsedTimeInSecond ?? 0), 0);
+  const averageTimeSeconds = totalNotes > 0 ? Math.round(totalTimeSeconds / totalNotes) : 0;
+
+  // Time by category
+  const catMap = new Map<string, number>();
+  for (const note of notes) {
+    const noteTime = note.elapsedTimeInSecond ?? 0;
+    for (const cat of note.categories) {
+      catMap.set(cat, (catMap.get(cat) ?? 0) + noteTime);
+    }
+  }
+  const timeByCategory: TimeByCategory[] = Array.from(catMap.entries())
+    .map(([name, totalSeconds]) => ({ name, totalSeconds }))
+    .sort((a, b) => b.totalSeconds - a.totalSeconds);
+
+  // Top 3 tags (by usage count, not time)
+  const tagCount = new Map<string, number>();
+  for (const note of notes) {
+    for (const cat of note.categories) {
+      tagCount.set(cat, (tagCount.get(cat) ?? 0) + 1);
+    }
+  }
+  const topTags = Array.from(tagCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name]) => name);
+
+  // Activity timeline (last 30 days)
+  const today = new Date();
+  const activityTimeline: ActivityDay[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10); // YYYY-MM-DD
+    const count = notes.filter(n => {
+      const noteDate = n.createdAt.toISOString().slice(0, 10);
+      return noteDate === dateStr;
+    }).length;
+    activityTimeline.push({ date: dateStr, count });
+  }
+
+  return {
+    totalNotes,
+    totalTimeSeconds,
+    averageTimeSeconds,
+    timeByCategory,
+    topTags,
+    activityTimeline,
+  };
+};
 
 // ==========================================
 // NOTES (PostNote)

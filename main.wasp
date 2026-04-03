@@ -108,6 +108,12 @@ page WatchaDashboardPage {
   authRequired: true,
   component: import WatchaDashboard from "@src/watcha/pages/WatchaDashboard"
 }
+
+route StatisticsRoute { path: "/statistics", to: StatisticsPage }
+page StatisticsPage {
+  authRequired: true,
+  component: import StatisticsPage from "@src/watcha/pages/StatisticsPage"
+}
 //#endregion
 
 //#region Auth Pages
@@ -357,6 +363,11 @@ action deleteArticle {
 action updateUserSettings {
   fn: import { updateUserSettings } from "@src/watcha/operations",
   entities: [User]
+}
+
+query getUserStatistics {
+  fn: import { getUserStatistics } from "@src/watcha/operations",
+  entities: [PostNote]
 }
 
 //#endregion

@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useAction } from 'wasp/client/operations';
 import { useAuth } from 'wasp/client/auth';
 import { getNotes, createNote, deleteNote, updateNote, getDownloadFileSignedURL } from 'wasp/client/operations';
 import { SubscriptionStatus } from '../../payment/plans';
 import { Link as WaspRouterLink, routes } from 'wasp/client/router';
-import { Search, Plus, Trash2, Clock, Calendar, Image as ImageIcon, X, Upload, Pencil, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Search, Plus, Trash2, Clock, Calendar, Image as ImageIcon, X, Pencil, Bookmark, BookmarkCheck, Play, Square, RotateCcw } from 'lucide-react';
 import { uploadFileWithProgress, validateFile, type FileWithValidType } from '../../file-upload/fileUploading';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
@@ -22,6 +22,57 @@ import { cn } from '../../lib/utils';
 import { Label } from '../../components/ui/label';
 
 const PREDEFINED_COLORS = ['#8dafce', '#f87171', '#fb923c', '#facc15', '#4ade80', '#a78bfa', '#f472b6', '#94a3b8'];
+
+const DRAFT_KEY = 'watcha-note-draft';
+
+type Draft = {
+  title: string;
+  text: string;
+  color: string;
+  categoriesInput: string;
+  elapsedSeconds: number;
+  isTimerRunning: boolean;
+  timerStartedAt: number | null; // timestamp
+};
+
+function loadDraft(): Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Draft;
+    // Recalculate elapsed if timer was running
+    if (draft.isTimerRunning && draft.timerStartedAt) {
+      const now = Date.now();
+      const additionalSeconds = Math.floor((now - draft.timerStartedAt) / 1000);
+      draft.elapsedSeconds += additionalSeconds;
+      draft.timerStartedAt = now;
+    }
+    return draft;
+  } catch { return null; }
+}
+
+function saveDraft(draft: Draft) {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+function formatTimer(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+function formatElapsedReadable(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
 
 export default function DashboardPage() {
   const { data: user } = useAuth();
@@ -42,14 +93,26 @@ export default function DashboardPage() {
   const deleteNoteFn = useAction(deleteNote);
   const updateNoteFn = useAction(updateNote);
 
-  // New Note State
-  const [title, setTitle] = useState('');
-  const [text, setText] = useState('');
-  const [color, setColor] = useState('#8dafce');
-  const [categoriesInput, setCategoriesInput] = useState('');
+  // Draft restoration
+  const initialDraft = useRef(loadDraft());
+
+  // Note form state
+  const [title, setTitle] = useState(initialDraft.current?.title || '');
+  const [text, setText] = useState(initialDraft.current?.text || '');
+  const [color, setColor] = useState(initialDraft.current?.color || '#8dafce');
+  const [categoriesInput, setCategoriesInput] = useState(initialDraft.current?.categoriesInput || '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Timer state
+  const [elapsedSeconds, setElapsedSeconds] = useState(initialDraft.current?.elapsedSeconds || 0);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialDraft.current?.isTimerRunning || false);
+  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(initialDraft.current?.timerStartedAt || null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Force form open even if note of the day exists
+  const [forceNewNote, setForceNewNote] = useState(false);
 
   const dateOfTheDay = new Date().toLocaleDateString('en-US', {
     month: 'short',
@@ -64,11 +127,72 @@ export default function DashboardPage() {
     isBookmark: undefined,
   });
 
-  const noteOfTheDayDone = (allNotes?.length ?? 0) > 0 && allNotes?.[0]?.date === dateOfTheDay;
+  const noteOfTheDayDone = !forceNewNote && (allNotes?.length ?? 0) > 0 && allNotes?.[0]?.date === dateOfTheDay;
+
+  // Timer logic
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isTimerRunning]);
+
+  // Save draft on every form change
+  const saveDraftDebounced = useCallback(() => {
+    saveDraft({
+      title,
+      text,
+      color,
+      categoriesInput,
+      elapsedSeconds,
+      isTimerRunning,
+      timerStartedAt: isTimerRunning ? Date.now() : null,
+    });
+  }, [title, text, color, categoriesInput, elapsedSeconds, isTimerRunning]);
+
+  useEffect(() => {
+    saveDraftDebounced();
+  }, [saveDraftDebounced]);
+
+  const handleStartTimer = () => {
+    setIsTimerRunning(true);
+    setTimerStartedAt(Date.now());
+  };
+
+  const handleStopTimer = () => {
+    setIsTimerRunning(false);
+    setTimerStartedAt(null);
+  };
+
+  const handleResetTimer = () => {
+    setIsTimerRunning(false);
+    setTimerStartedAt(null);
+    setElapsedSeconds(0);
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setText('');
+    setColor('#8dafce');
+    setCategoriesInput('');
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setElapsedSeconds(0);
+    setIsTimerRunning(false);
+    setTimerStartedAt(null);
+    clearDraft();
+  };
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title && !text && !selectedFile) return;
+    
+    // Stop timer if still running
+    handleStopTimer();
     
     setIsUploading(true);
     try {
@@ -98,14 +222,12 @@ export default function DashboardPage() {
         date: dateOfTheDay,
         color,
         categories: parsedCategories,
+        elapsedTimeInSecond: elapsedSeconds,
+        elapsedTime: formatElapsedReadable(elapsedSeconds),
         fileId,
       });
-      setTitle('');
-      setText('');
-      setColor('#8dafce');
-      setCategoriesInput('');
-      setSelectedFile(null);
-      setUploadProgress(0);
+      resetForm();
+      setForceNewNote(false);
     } catch (err) {
       console.error('Upload failed:', err);
     } finally {
@@ -126,6 +248,8 @@ export default function DashboardPage() {
     notes.forEach(n => n.categories.forEach(c => cats.add(c)));
     return Array.from(cats);
   }, [notes]);
+
+  const showForm = !noteOfTheDayDone || forceNewNote;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 font-sans transition-colors duration-300">
@@ -152,21 +276,63 @@ export default function DashboardPage() {
 
       {/* NOTE EDITION */}
       <section className="mb-12">
-        {noteOfTheDayDone ? (
-          <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-dashed border-2 border-amber-300 dark:border-amber-700/50 shadow-none sketch-shadow">
-            <CardContent className="p-8 flex items-center justify-center">
-              <h2 className="text-2xl font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-3">
-                🎉 Your watch of the day is done! See you next time.
+        {/* Success banner (always visible when note of the day exists, even with filters) */}
+        {noteOfTheDayDone && (
+          <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-dashed border-2 border-amber-300 dark:border-amber-700/50 shadow-none sketch-shadow mb-6">
+            <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-3">
+                🎉 Your watch of the day is done!
               </h2>
+              <Button
+                variant="outline"
+                onClick={() => { setForceNewNote(true); resetForm(); }}
+                className="border-2 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 sketch-shadow"
+              >
+                <Plus className="size-4 mr-2" />
+                Start another watch
+              </Button>
             </CardContent>
           </Card>
-        ) : (
+        )}
+
+        {showForm && (
           <Card className="relative overflow-hidden group sketch-shadow border-2 border-border mb-8">
             <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: color }} />
             <form onSubmit={handleCreateNote}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl text-primary">
-                  <Plus /> New Daily Note
+                <CardTitle className="flex items-center justify-between text-2xl text-primary">
+                  <span className="flex items-center gap-2">
+                    <Plus /> New Daily Note
+                  </span>
+                  {/* TIMER */}
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "font-mono text-xl tabular-nums px-3 py-1 rounded-sm border-2",
+                      isTimerRunning 
+                        ? "border-primary bg-primary/10 text-primary animate-pulse" 
+                        : elapsedSeconds > 0 
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
+                          : "border-border text-muted-foreground"
+                    )}>
+                      {formatTimer(elapsedSeconds)}
+                    </div>
+                    {!isTimerRunning ? (
+                      <Button type="button" variant="outline" size="sm" onClick={handleStartTimer} className="border-2 gap-1">
+                        <Play className="size-3" />
+                        {elapsedSeconds > 0 ? 'Resume' : 'Start'}
+                      </Button>
+                    ) : (
+                      <Button type="button" variant="outline" size="sm" onClick={handleStopTimer} className="border-2 gap-1 border-destructive text-destructive hover:bg-destructive/10">
+                        <Square className="size-3" />
+                        Stop
+                      </Button>
+                    )}
+                    {elapsedSeconds > 0 && !isTimerRunning && (
+                      <Button type="button" variant="ghost" size="sm" onClick={handleResetTimer} className="gap-1 text-muted-foreground">
+                        <RotateCcw className="size-3" />
+                      </Button>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -237,7 +403,12 @@ export default function DashboardPage() {
                 </div>
                 {uploadProgress > 0 && <Progress value={uploadProgress} className='w-full h-2' />}
               </CardContent>
-              <CardFooter className="flex justify-end">
+              <CardFooter className="flex justify-end gap-3">
+                {forceNewNote && (
+                  <Button type="button" variant="ghost" onClick={() => { setForceNewNote(false); resetForm(); }}>
+                    Cancel
+                  </Button>
+                )}
                 <Button
                   type="submit"
                   disabled={isUploading}
@@ -355,7 +526,7 @@ export default function DashboardPage() {
               <CardContent className="px-5 pb-5 flex-grow">
                 {/* @ts-ignore */}
                 {note.file && (
-                  <div className="mb-4 rounded-xl overflow-hidden border border-border aspect-video bg-muted flex items-center justify-center">
+                  <div className="mb-4 py-2 rounded-xl overflow-hidden border border-border aspect-video bg-muted flex items-center justify-center">
                     {/* @ts-ignore */}
                     <NoteImage fileKey={note.file.key} title={note.title} />
                   </div>
@@ -420,7 +591,6 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
   const [color, setColor] = useState(note.color || '#8dafce');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync state if note prop changes while dialog is open natively
   React.useEffect(() => {
     if (open) {
       setTitle(note.title || '');
