@@ -8,7 +8,7 @@ import { cn } from '../../../lib/utils';
 import { throttleWithTrailingInvocation } from '../../../shared/utils';
 import { UserDropdown } from '../../../user/UserDropdown';
 import { UserMenuItems } from '../../../user/UserMenuItems';
-import logo from '../../static/logo.webp';
+import logo from '../../static/logo_ww.ico';
 import DarkModeSwitcher from '../DarkModeSwitcher';
 
 export interface NavigationItem {
@@ -60,7 +60,7 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
                     'ml-2 text-xs': isScrolled,
                   })}
                 >
-                  Your SaaS
+                  Watcha
                 </span>
               </WaspRouterLink>
 
@@ -146,7 +146,7 @@ function NavBarMobileMenu({
           <SheetHeader>
             <SheetTitle className='flex items-center'>
               <WaspRouterLink to={routes.LandingPageRoute.to}>
-                <span className='sr-only'>Your SaaS</span>
+                <span className='sr-only'>Watcha</span>
                 <NavLogo isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
@@ -212,6 +212,6 @@ const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
       'size-7': isScrolled,
     })}
     src={logo}
-    alt='Your SaaS App'
+    alt='Watcha'
   />
 );

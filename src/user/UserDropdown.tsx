@@ -25,7 +25,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
           <ChevronDown className='size-4' />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent className='w-48 bg-background border border-border shadow-lg'>
         {userMenuItems.map((item) => {
           if (item.isAuthRequired && !user) return null;
           if (item.isAdminOnly && (!user || !user.isAdmin)) return null;

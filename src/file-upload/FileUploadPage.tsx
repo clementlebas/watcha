@@ -161,8 +161,8 @@ export default function FileUploadPage() {
                           }
                         )}
                       >
-                        <p className='text-foreground font-medium'>{file.name}</p>
-                        <div className="flex gap-2 mt-4 sm:mt-0">
+                        <p className='text-foreground font-medium truncate min-w-0 mr-4'>{file.name}</p>
+                        <div className="flex gap-2 mt-4 sm:mt-0 shrink-0">
                           <Button
                             onClick={() => setFileKeyForS3(file.key)}
                             disabled={file.key === fileKeyForS3 && isDownloadUrlLoading}

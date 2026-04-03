@@ -15,11 +15,24 @@ import { HttpError } from 'wasp/server';
 // NOTES (PostNote)
 // ==========================================
 
-export const getNotes: GetNotes<void, PostNote[]> = async (_args, context) => {
+type GetNotesArgs = {
+  search?: string;
+  category?: string;
+  color?: string;
+  isBookmark?: boolean;
+};
+
+export const getNotes: GetNotes<GetNotesArgs, PostNote[]> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'User must be logged in');
 
   return context.entities.PostNote.findMany({
-    where: { userId: context.user.id },
+    where: { 
+      userId: context.user.id,
+      ...(args.search && { title: { contains: args.search, mode: 'insensitive' } }),
+      ...(args.category && { categories: { has: args.category } }),
+      ...(args.color && { color: args.color }),
+      ...(args.isBookmark !== undefined && { isBookmark: args.isBookmark }),
+    },
     orderBy: { createdAt: 'desc' },
     include: { file: true }
   });
