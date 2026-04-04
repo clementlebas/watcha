@@ -32,21 +32,21 @@ const Dashboard = ({ user }: { user: AuthUser }) => {
       <div className='relative'>
         <div
           className={cn({
-            'opacity-25': !stats,
+            'opacity-25': !stats?.dailyStats,
           })}
         >
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5'>
             <TotalPageViewsCard
-              totalPageViews={stats?.dailyStats.totalViews}
-              prevDayViewsChangePercent={stats?.dailyStats.prevDayViewsChangePercent}
+              totalPageViews={stats?.dailyStats?.totalViews}
+              prevDayViewsChangePercent={stats?.dailyStats?.prevDayViewsChangePercent}
             />
             <TotalRevenueCard
-              dailyStats={stats?.dailyStats}
+              dailyStats={stats?.dailyStats || undefined}
               weeklyStats={stats?.weeklyStats}
               isLoading={isLoading}
             />
-            <TotalPayingUsersCard dailyStats={stats?.dailyStats} isLoading={isLoading} />
-            <TotalSignupsCard dailyStats={stats?.dailyStats} isLoading={isLoading} />
+            <TotalPayingUsersCard dailyStats={stats?.dailyStats || undefined} isLoading={isLoading} />
+            <TotalSignupsCard dailyStats={stats?.dailyStats || undefined} isLoading={isLoading} />
           </div>
 
           <div className='mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-7.5 2xl:gap-7.5'>
@@ -58,7 +58,7 @@ const Dashboard = ({ user }: { user: AuthUser }) => {
           </div>
         </div>
 
-        {!stats && (
+        {!stats?.dailyStats && (
           <div className='absolute inset-0 flex items-start justify-center bg-background/50'>
             <div className='rounded-lg bg-card p-8 shadow-lg'>
               <p className='text-2xl font-bold text-foreground'>No daily stats generated yet</p>
