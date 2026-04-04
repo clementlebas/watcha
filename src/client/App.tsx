@@ -11,6 +11,8 @@ import CookieConsentBanner from './components/cookie-consent/Banner';
  * use this component to wrap all child components
  * this is useful for templates, themes, and context
  */
+import { Toaster } from 'react-hot-toast';
+
 export default function App() {
   const location = useLocation();
   const { data: user } = useAuth();
@@ -59,6 +61,7 @@ export default function App() {
         )}
       </div>
       <CookieConsentBanner />
+      <Toaster />
     </>
   );
 }

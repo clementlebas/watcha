@@ -45,9 +45,9 @@ export default function StatisticsPage() {
   const avgTime = formatSeconds(stats.averageTimeSeconds);
 
   const pieChartConfig: Record<string, { label: string; color: string }> = {};
-  stats.timeByCategory.forEach((cat, i) => {
-    pieChartConfig[cat.name] = {
-      label: cat.name,
+  stats.timeByTopic.forEach((topic, i) => {
+    pieChartConfig[topic.name] = {
+      label: topic.name,
       color: PIE_COLORS[i % PIE_COLORS.length],
     };
   });
@@ -101,14 +101,14 @@ export default function StatisticsPage() {
 
           {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-            {/* PIE: Time by Category */}
+            {/* PIE: Time by Topic */}
             <Card className="sketch-shadow">
               <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">🏷️ Time by Category</CardTitle>
+                <CardTitle className="text-xl flex items-center gap-2">🏷️ Time by Topic</CardTitle>
               </CardHeader>
               <CardContent>
-                {stats.timeByCategory.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No categories tracked yet.</p>
+                {stats.timeByTopic.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No topics tracked yet.</p>
                 ) : (
                   <ChartContainer config={pieChartConfig} className="mx-auto aspect-square max-h-[300px]">
                     <PieChart>
@@ -123,7 +123,7 @@ export default function StatisticsPage() {
                         }
                       />
                       <Pie
-                        data={stats.timeByCategory}
+                        data={stats.timeByTopic}
                         dataKey="totalSeconds"
                         nameKey="name"
                         cx="50%"
@@ -133,7 +133,7 @@ export default function StatisticsPage() {
                         strokeWidth={3}
                         stroke="oklch(var(--background))"
                       >
-                        {stats.timeByCategory.map((entry, index) => (
+                        {stats.timeByTopic.map((entry, index) => (
                           <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
@@ -141,12 +141,12 @@ export default function StatisticsPage() {
                   </ChartContainer>
                 )}
                 {/* Legend */}
-                {stats.timeByCategory.length > 0 && (
+                {stats.timeByTopic.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                    {stats.timeByCategory.map((cat, i) => (
-                      <div key={cat.name} className="flex items-center gap-1.5 text-xs">
+                    {stats.timeByTopic.map((topic, i) => (
+                      <div key={topic.name} className="flex items-center gap-1.5 text-xs">
                         <div className="w-3 h-3 rounded-sm border border-border" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-muted-foreground">{cat.name}</span>
+                        <span className="text-muted-foreground">{topic.name}</span>
                       </div>
                     ))}
                   </div>
@@ -204,7 +204,7 @@ export default function StatisticsPage() {
             <WatchaCardDialog
               totalNotes={stats.totalNotes}
               averageMinutes={Math.floor(stats.averageTimeSeconds / 60)}
-              topTags={stats.topTags}
+              topTopics={stats.topTopics}
               username={user?.username || user?.email || 'Watcher'}
             />
           </div>
@@ -230,10 +230,10 @@ function KpiCard({ icon, label, value, accent }: { icon: React.ReactNode; label:
   );
 }
 
-function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
+function WatchaCardDialog({ totalNotes, averageMinutes, topTopics, username }: {
   totalNotes: number;
   averageMinutes: number;
-  topTags: string[];
+  topTopics: string[];
   username: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -280,14 +280,14 @@ function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
             </div>
           </div>
 
-          {/* Favorite Tags */}
-          {topTags.length > 0 && (
+          {/* Favorite Topics */}
+          {topTopics.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Favorite Tags</p>
+              <p className="text-sm text-muted-foreground">Favorite Topics</p>
               <div className="flex flex-wrap gap-2">
-                {topTags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    #{tag}
+                {topTopics.map(topic => (
+                  <Badge key={topic} variant="secondary" className="text-xs">
+                    {topic}
                   </Badge>
                 ))}
               </div>

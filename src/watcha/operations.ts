@@ -30,9 +30,14 @@ type UserStatisticsResult = {
   totalNotes: number;
   totalTimeSeconds: number;
   averageTimeSeconds: number;
-  timeByCategory: TimeByCategory[];
-  topTags: string[];
+  timeByTopic: TimeByTopic[];
+  topTopics: string[];
   activityTimeline: ActivityDay[];
+};
+
+type TimeByTopic = {
+  name: string;
+  totalSeconds: number;
 };
 
 export const getUserStatistics: GetUserStatistics<void, UserStatisticsResult> = async (_args, context) => {
@@ -49,26 +54,26 @@ export const getUserStatistics: GetUserStatistics<void, UserStatisticsResult> = 
   const totalTimeSeconds = notes.reduce((sum, n) => sum + (n.elapsedTimeInSecond ?? 0), 0);
   const averageTimeSeconds = totalNotes > 0 ? Math.round(totalTimeSeconds / totalNotes) : 0;
 
-  // Time by category
-  const catMap = new Map<string, number>();
+  // Time by topic
+  const topicMap = new Map<string, number>();
   for (const note of notes) {
     const noteTime = note.elapsedTimeInSecond ?? 0;
-    for (const cat of note.categories) {
-      catMap.set(cat, (catMap.get(cat) ?? 0) + noteTime);
+    for (const top of note.topics) {
+      topicMap.set(top, (topicMap.get(top) ?? 0) + noteTime);
     }
   }
-  const timeByCategory: TimeByCategory[] = Array.from(catMap.entries())
+  const timeByTopic: TimeByTopic[] = Array.from(topicMap.entries())
     .map(([name, totalSeconds]) => ({ name, totalSeconds }))
     .sort((a, b) => b.totalSeconds - a.totalSeconds);
 
-  // Top 3 tags (by usage count, not time)
-  const tagCount = new Map<string, number>();
+  // Top 3 topics (by usage count, not time)
+  const topicCount = new Map<string, number>();
   for (const note of notes) {
-    for (const cat of note.categories) {
-      tagCount.set(cat, (tagCount.get(cat) ?? 0) + 1);
+    for (const top of note.topics) {
+      topicCount.set(top, (topicCount.get(top) ?? 0) + 1);
     }
   }
-  const topTags = Array.from(tagCount.entries())
+  const topTopics = Array.from(topicCount.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([name]) => name);
@@ -91,8 +96,8 @@ export const getUserStatistics: GetUserStatistics<void, UserStatisticsResult> = 
     totalNotes,
     totalTimeSeconds,
     averageTimeSeconds,
-    timeByCategory,
-    topTags,
+    timeByTopic,
+    topTopics,
     activityTimeline,
   };
 };
@@ -103,7 +108,7 @@ export const getUserStatistics: GetUserStatistics<void, UserStatisticsResult> = 
 
 type GetNotesArgs = {
   search?: string;
-  category?: string;
+  topic?: string;
   color?: string;
   isBookmark?: boolean;
 };
@@ -115,7 +120,7 @@ export const getNotes: GetNotes<GetNotesArgs, PostNote[]> = async (args, context
     where: { 
       userId: context.user.id,
       ...(args.search && { title: { contains: args.search, mode: 'insensitive' } }),
-      ...(args.category && { categories: { has: args.category } }),
+      ...(args.topic && { topics: { has: args.topic } }),
       ...(args.color && { color: args.color }),
       ...(args.isBookmark !== undefined && { isBookmark: args.isBookmark }),
     },
@@ -130,7 +135,7 @@ type CreateNoteArgs = {
   date?: string;
   elapsedTime?: string;
   elapsedTimeInSecond?: number;
-  categories?: string[];
+  topics?: string[];
   color?: string;
   urlImage?: string;
   imageKey?: string;
@@ -153,7 +158,7 @@ type UpdateNoteArgs = {
   id: string;
   title?: string;
   text?: string;
-  categories?: string[];
+  topics?: string[];
   color?: string;
   isBookmark?: boolean;
   fileId?: string;
@@ -243,25 +248,3 @@ export const deleteArticle: DeleteArticle<{ id: string }, void> = async ({ id },
 };
 
 
-// ==========================================
-// SETTINGS
-// ==========================================
-
-type UpdateSettingsArgs = {
-  firstName?: string;
-  picture?: string;
-  defaultTimer?: string;
-  routine?: any;
-  topics?: string[];
-  tagsList?: string[];
-  categories?: string[];
-};
-
-export const updateUserSettings: UpdateUserSettings<UpdateSettingsArgs, User> = async (args, context) => {
-  if (!context.user) throw new HttpError(401, 'User must be logged in');
-
-  return context.entities.User.update({
-    where: { id: context.user.id },
-    data: args,
-  });
-};

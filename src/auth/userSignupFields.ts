@@ -73,6 +73,10 @@ const googleDataSchema = z.object({
   profile: z.object({
     email: z.string(),
     email_verified: z.boolean(),
+    name: z.string().optional(),
+    picture: z.string().optional(),
+    given_name: z.string().optional(),
+    family_name: z.string().optional(),
   }),
 });
 
@@ -91,6 +95,26 @@ export const getGoogleUserFields = defineUserSignupFields({
       return false;
     }
     return adminEmails.includes(googleData.profile.email);
+  },
+  name: (data) => {
+    const googleData = googleDataSchema.parse(data);
+    return googleData.profile.name;
+  },
+  avatarUrl: (data) => {
+    const googleData = googleDataSchema.parse(data);
+    return googleData.profile.picture;
+  },
+  picture: (data) => {
+    const googleData = googleDataSchema.parse(data);
+    return googleData.profile.picture;
+  },
+  firstName: (data) => {
+    const googleData = googleDataSchema.parse(data);
+    return googleData.profile.given_name;
+  },
+  lastName: (data) => {
+    const googleData = googleDataSchema.parse(data);
+    return googleData.profile.family_name;
   },
 });
 

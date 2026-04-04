@@ -30,11 +30,12 @@ model User {
   // --- WatchaV2 Custom Fields ---
   firstName                 String?
   lastName                  String?
+  name                      String?
   picture                   String? 
-  categories                String[]        @default([])
-  tagsList                  String[]        @default([])
+  avatarUrl                 String?
+  about                     String?
   topics                    String[]        @default([])
-  defaultTimer              String?
+  defaultTimer              Int             @default(25)
   routine                   Json?
 
   notes                     PostNote[]
@@ -65,7 +66,7 @@ model PostNote {
   date                      String?         // Conserved as String from old 'date' field
   elapsedTime               String?
   elapsedTimeInSecond       Int?
-  categories                String[]        @default([])
+  topics                    String[]        @default([])
   color                     String?
   isBookmark                Boolean         @default(false)
   urlImage                  String?

@@ -1,75 +1,240 @@
-import { getCustomerPortalUrl, useQuery } from 'wasp/client/operations';
+import React, { useState } from 'react';
+import { getCustomerPortalUrl, useQuery, useAction, updateUserSettings } from 'wasp/client/operations';
 import { Link as WaspRouterLink, routes } from 'wasp/client/router';
 import type { User } from 'wasp/entities';
+import toast from 'react-hot-toast';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { SubscriptionStatus, parsePaymentPlanId, prettyPaymentPlanName } from '../payment/plans';
+import { Save, Hash, Clock, Calendar, User as UserIcon } from 'lucide-react';
+
+import AboutYouSetting from '../watcha/components/AboutYouSetting';
+import TopicSelector from '../watcha/components/TopicSelector';
+import TimerSetting from '../watcha/components/TimerSetting';
+import RoutineEstablisher from '../watcha/components/RoutineEstablisher';
 
 export default function AccountPage({ user }: { user: User }) {
+  const updateSettings = useAction(updateUserSettings);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [name, setName] = useState(user.name || '');
+  const [about, setAbout] = useState(user.about || '');
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || user.picture || '');
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      await updateSettings({
+        name,
+        about,
+        avatarUrl,
+      });
+      toast.success('Profil mis à jour !');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erreur lors de la mise à jour du profil.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className='mt-10 px-6'>
-      <Card className='mb-4 lg:m-8'>
-        <CardHeader>
-          <CardTitle className='text-base font-semibold leading-6 text-foreground'>
-            Account Information
+    <div className='mt-10 px-6 space-y-8 pb-20'>
+      {/* Account & Profile */}
+      <Card className='mb-4 lg:mx-8 sketch-shadow border-none bg-card overflow-hidden'>
+        <CardHeader className="border-b border-dashed">
+          <CardTitle className='text-xl font-bold flex items-center gap-2'>
+            <UserIcon className="size-5 text-primary" />
+            Informations du compte
           </CardTitle>
+          <CardDescription>
+            Gérez vos informations personnelles et votre avatar.
+          </CardDescription>
         </CardHeader>
-        <CardContent className='p-0'>
-          <div className='space-y-0'>
-            {!!user.email && (
-              <div className='py-4 px-6'>
-                <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
-                  <dt className='text-sm font-medium text-muted-foreground'>Email address</dt>
-                  <dd className='mt-1 text-sm text-foreground sm:col-span-2 sm:mt-0'>{user.email}</dd>
-                </div>
-              </div>
-            )}
-            {!!user.username && (
-              <>
-                <Separator />
-                <div className='py-4 px-6'>
-                  <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
-                    <dt className='text-sm font-medium text-muted-foreground'>Username</dt>
-                    <dd className='mt-1 text-sm text-foreground sm:col-span-2 sm:mt-0'>{user.username}</dd>
+        <CardContent className='p-6 space-y-6'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-6">
+              <AboutYouSetting 
+                name={name}
+                about={about}
+                avatarUrl={avatarUrl}
+                onNameChange={setName}
+                onAboutChange={setAbout}
+                onAvatarUrlChange={setAvatarUrl}
+                disableAvatarChange={!!user.avatarUrl}
+              />
+            </div>
+            
+            <div className="space-y-4 pt-8">
+              <div className="bg-muted/50 p-4 rounded-xl border-2 border-dashed border-border space-y-4">
+                {!!user.email && (
+                  <div className='flex flex-col gap-1'>
+                    <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>Email</span>
+                    <span className='text-sm font-medium'>{user.email}</span>
+                  </div>
+                )}
+                {!!user.username && (
+                  <div className='flex flex-col gap-1'>
+                    <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>Nom d'utilisateur</span>
+                    <span className='text-sm font-medium'>{user.username}</span>
+                  </div>
+                )}
+                <div className='flex flex-col gap-1'>
+                  <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>Status</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold px-3 py-1 text-[10px] rounded-full border ${user.subscriptionStatus === SubscriptionStatus.Active ? 'bg-primary/10 border-primary text-primary' : 'bg-secondary border-border text-muted-foreground'}`}>
+                      {user.subscriptionStatus === SubscriptionStatus.Active ? 'PRO' : 'FREE'}
+                    </span>
                   </div>
                 </div>
-              </>
-            )}
-            <Separator />
-            <div className='py-4 px-6'>
-              <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
-                <dt className='text-sm font-medium text-muted-foreground'>Status</dt>
-                <dd className='mt-1 text-sm sm:col-span-2 sm:mt-0'>
-                  <span className={`font-semibold px-2 py-1 inline-flex text-xs leading-5 rounded-full ${user.subscriptionStatus === SubscriptionStatus.Active ? 'bg-blue-100 text-blue-800' : 'bg-neutral-100 text-neutral-800'}`}>
-                    {user.subscriptionStatus === SubscriptionStatus.Active ? 'PRO' : 'FREE'}
-                  </span>
-                </dd>
               </div>
-            </div>
-            <Separator />
-            <div className='py-4 px-6'>
-              <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
-                <dt className='text-sm font-medium text-muted-foreground'>Your Plan</dt>
-                <UserCurrentPaymentPlan
-                  subscriptionStatus={user.subscriptionStatus as SubscriptionStatus}
-                  subscriptionPlan={user.subscriptionPlan}
-                  datePaid={user.datePaid}
-                  credits={user.credits}
-                />
-              </div>
-            </div>
-            <Separator />
-            <div className='py-4 px-6'>
-              <div className='grid grid-cols-1 sm:grid-cols-3 sm:gap-4'>
-                <dt className='text-sm font-medium text-muted-foreground'>About</dt>
-                <dd className='mt-1 text-sm text-foreground sm:col-span-2 sm:mt-0'>I'm a cool customer.</dd>
+
+              <div className="space-y-2">
+                <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1'>Votre Plan</span>
+                <div className="flex items-center justify-between bg-card p-4 rounded-xl border-2 sketch-shadow">
+                  <UserCurrentPaymentPlan
+                    subscriptionStatus={user.subscriptionStatus as SubscriptionStatus}
+                    subscriptionPlan={user.subscriptionPlan}
+                    datePaid={user.datePaid}
+                    credits={user.credits}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
+        <CardFooter className="bg-muted/30 border-t border-dashed p-6 flex justify-end">
+          <Button 
+            onClick={handleSaveProfile} 
+            disabled={isSaving}
+            className="font-bold sketch-shadow border-2 border-primary active:translate-y-0.5"
+          >
+            {isSaving ? "Enregistrement..." : "Sauvegarder le profil"}
+            <Save className="ml-2 size-4" />
+          </Button>
+        </CardFooter>
       </Card>
+
+      <WatchaPreferences user={user} />
     </div>
+  );
+}
+
+function WatchaPreferences({ user }: { user: User }) {
+  const updateSettings = useAction(updateUserSettings);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(user.topics || []);
+  const [timer, setTimer] = useState<number>(user.defaultTimer || 25);
+  const [routine, setRoutine] = useState<Record<string, string>>(
+    (user.routine as Record<string, string>) || {}
+  );
+
+  const toggleTopic = (topic: string) => {
+    setSelectedTopics(prev => 
+      prev.includes(topic) 
+        ? prev.filter(t => t !== topic) 
+        : [...prev, topic]
+    );
+  };
+
+  const toggleDay = (day: string) => {
+    setRoutine(prev => {
+      const newRoutine = { ...prev };
+      if (newRoutine[day]) {
+        delete newRoutine[day];
+      } else {
+        newRoutine[day] = "09:00";
+      }
+      return newRoutine;
+    });
+  };
+
+  const updateDayTime = (day: string, time: string) => {
+    setRoutine(prev => ({
+      ...prev,
+      [day]: time
+    }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateSettings({
+        topics: selectedTopics,
+        defaultTimer: timer,
+        routine: routine,
+      });
+      toast.success('Préférences mises à jour avec succès !');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Erreur lors de la mise à jour des préférences.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Card className='mb-4 lg:mx-8 sketch-shadow border-none bg-card overflow-hidden'>
+      <CardHeader className="border-b border-dashed">
+        <CardTitle className='text-xl font-bold flex items-center gap-2'>
+          <Save className="size-5 text-primary" />
+          Watcha Preferences
+        </CardTitle>
+        <CardDescription>
+          Personnalisez votre expérience de veille et vos rappels.
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className='pt-6 space-y-10'>
+        {/* Topics */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-muted-foreground">
+            <Hash className="size-4" />
+            Sujets d'intérêt
+          </div>
+          <TopicSelector selectedTopics={selectedTopics} onToggle={toggleTopic} />
+        </div>
+
+        <Separator className="border-dashed" />
+
+        {/* Timer */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-muted-foreground">
+            <Clock className="size-4" />
+            Minuteur par défaut
+          </div>
+          <TimerSetting timer={timer} onChange={setTimer} />
+        </div>
+
+        <Separator className="border-dashed" />
+
+        {/* Routine */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-muted-foreground">
+            <Calendar className="size-4" />
+            Routine hebdomadaire
+          </div>
+          <RoutineEstablisher 
+            routine={routine} 
+            onToggleDay={toggleDay} 
+            onUpdateTime={updateDayTime} 
+          />
+        </div>
+      </CardContent>
+
+      <CardFooter className="bg-muted/30 border-t border-dashed p-6 flex justify-end">
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          className="font-bold sketch-shadow border-2 border-primary active:translate-y-0.5"
+        >
+          {isSaving ? "Enregistrement..." : "Sauvegarder les préférences"}
+          <Save className="ml-2 size-4" />
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -123,7 +288,7 @@ function prettyPrintStatus(
   planName: string,
   subscriptionStatus: SubscriptionStatus,
   endOfBillingPeriod: string
-): string {
+ ): string {
   const statusToMessage: Record<SubscriptionStatus, string> = {
     active: `${planName}`,
     past_due: `Payment for your ${planName} plan is past due! Please update your subscription payment information.`,

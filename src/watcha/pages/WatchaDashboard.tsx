@@ -29,8 +29,8 @@ type Draft = {
   title: string;
   text: string;
   color: string;
-  categories: string[];
-  elapsedSeconds: number;
+  topics: string[];
+  remainingSeconds: number;
   isTimerRunning: boolean;
   timerStartedAt: number | null; // timestamp
 };
@@ -40,15 +40,23 @@ function loadDraft(): Draft | null {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const draft = JSON.parse(raw) as Draft;
-    // Migration: handle old string format
-    if (typeof (draft as any).categoriesInput === 'string') {
-      draft.categories = (draft as any).categoriesInput.split(',').map((c: string) => c.trim()).filter(Boolean);
+    // Migration: handle old 'categories' or 'categoriesInput'
+    if ((draft as any).categories) {
+      draft.topics = (draft as any).categories;
     }
-    // Recalculate elapsed if timer was running
+    if (typeof (draft as any).categoriesInput === 'string') {
+      draft.topics = (draft as any).categoriesInput.split(',').map((c: string) => c.trim()).filter(Boolean);
+    }
+    // Migration: elapsedSeconds to remainingSeconds
+    if ((draft as any).elapsedSeconds !== undefined && draft.remainingSeconds === undefined) {
+      draft.remainingSeconds = (draft as any).elapsedSeconds;
+    }
+    
+    // Recalculate remaining if timer was running
     if (draft.isTimerRunning && draft.timerStartedAt) {
       const now = Date.now();
-      const additionalSeconds = Math.floor((now - draft.timerStartedAt) / 1000);
-      draft.elapsedSeconds += additionalSeconds;
+      const lostSeconds = Math.floor((now - draft.timerStartedAt) / 1000);
+      draft.remainingSeconds = Math.max(0, draft.remainingSeconds - lostSeconds);
       draft.timerStartedAt = now;
     }
     return draft;
@@ -82,13 +90,13 @@ export default function DashboardPage() {
   const { data: user } = useAuth();
 
   const [searchValue, setSearchValue] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [topicFilter, setTopicFilter] = useState<string>('all');
   const [colorFilter, setColorFilter] = useState<string>('all');
   const [bookmarkFilter, setBookmarkFilter] = useState<boolean>(false);
 
   const { data: notes, isLoading } = useQuery(getNotes, {
     search: searchValue || undefined,
-    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    topic: topicFilter !== 'all' ? topicFilter : undefined,
     color: colorFilter !== 'all' ? colorFilter : undefined,
     isBookmark: bookmarkFilter ? true : undefined,
   });
@@ -104,20 +112,21 @@ export default function DashboardPage() {
   const [title, setTitle] = useState(initialDraft.current?.title || '');
   const [text, setText] = useState(initialDraft.current?.text || '');
   const [color, setColor] = useState(initialDraft.current?.color || '#8dafce');
-  const [categories, setCategories] = useState<string[]>(initialDraft.current?.categories || []);
+  const [topics, setTopics] = useState<string[]>(initialDraft.current?.topics || []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
   // Timer state
-  const [elapsedSeconds, setElapsedSeconds] = useState(initialDraft.current?.elapsedSeconds || 0);
+  const defaultSeconds = (user?.defaultTimer || 25) * 60;
+  const [remainingSeconds, setRemainingSeconds] = useState(initialDraft.current?.remainingSeconds ?? defaultSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(initialDraft.current?.isTimerRunning || false);
   const [timerStartedAt, setTimerStartedAt] = useState<number | null>(initialDraft.current?.timerStartedAt || null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Force form open even if note of the day exists
   // Auto-open if we have a saved draft with content
-  const hasDraftContent = !!(initialDraft.current?.title || initialDraft.current?.text || (initialDraft.current?.elapsedSeconds && initialDraft.current.elapsedSeconds > 0));
+  const hasDraftContent = !!(initialDraft.current?.title || initialDraft.current?.text || (initialDraft.current?.topics && initialDraft.current.topics.length > 0));
   const [forceNewNote, setForceNewNote] = useState(hasDraftContent);
 
   const dateOfTheDay = new Date().toLocaleDateString('en-US', {
@@ -128,7 +137,7 @@ export default function DashboardPage() {
 
   const { data: allNotes } = useQuery(getNotes, {
     search: undefined,
-    category: undefined,
+    topic: undefined,
     color: undefined,
     isBookmark: undefined,
   });
@@ -139,7 +148,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isTimerRunning) {
       timerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
+        setRemainingSeconds(prev => {
+          if (prev <= 0) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -153,12 +168,12 @@ export default function DashboardPage() {
       title,
       text,
       color,
-      categories,
-      elapsedSeconds,
+      topics,
+      remainingSeconds,
       isTimerRunning,
       timerStartedAt: isTimerRunning ? Date.now() : null,
     });
-  }, [title, text, color, categories]);
+  }, [title, text, color, topics, remainingSeconds, isTimerRunning]);
 
   useEffect(() => {
     if (!isTimerRunning) return;
@@ -167,14 +182,14 @@ export default function DashboardPage() {
         title,
         text,
         color,
-        categories,
-        elapsedSeconds,
+        topics,
+        remainingSeconds,
         isTimerRunning: true,
         timerStartedAt: Date.now(),
       });
     }, 5000);
     return () => clearInterval(id);
-  }, [isTimerRunning, title, text, color, categories, elapsedSeconds]);
+  }, [isTimerRunning, title, text, color, topics, remainingSeconds]);
 
   const handleStartTimer = () => {
     setIsTimerRunning(true);
@@ -189,17 +204,17 @@ export default function DashboardPage() {
   const handleResetTimer = () => {
     setIsTimerRunning(false);
     setTimerStartedAt(null);
-    setElapsedSeconds(0);
+    setRemainingSeconds(defaultSeconds);
   };
 
   const resetForm = () => {
     setTitle('');
     setText('');
     setColor('#8dafce');
-    setCategories([]);
+    setTopics([]);
     setSelectedFile(null);
     setUploadProgress(0);
-    setElapsedSeconds(0);
+    setRemainingSeconds(defaultSeconds);
     setIsTimerRunning(false);
     setTimerStartedAt(null);
     clearDraft();
@@ -232,14 +247,14 @@ export default function DashboardPage() {
         fileId = result.fileId;
       }
 
-      const parsedCategories = categories;
+      const elapsedSeconds = defaultSeconds - remainingSeconds;
 
       await createNoteFn({
         title: title || (selectedFile ? 'Image Note' : 'Untitled'),
         text,
         date: dateOfTheDay,
         color,
-        categories: parsedCategories,
+        topics,
         elapsedTimeInSecond: elapsedSeconds,
         elapsedTime: formatElapsedReadable(elapsedSeconds),
         fileId,
@@ -260,11 +275,11 @@ export default function DashboardPage() {
     });
   }
 
-  const uniqueCategories = useMemo(() => {
+  const uniqueTopics = useMemo(() => {
     if (!notes) return [];
-    const cats = new Set<string>();
-    notes.forEach(n => n.categories.forEach(c => cats.add(c)));
-    return Array.from(cats);
+    const tops = new Set<string>();
+    notes.forEach(note => note.topics.forEach(t => tops.add(t)));
+    return Array.from(tops);
   }, [notes]);
 
   const showForm = !noteOfTheDayDone || forceNewNote;
@@ -332,17 +347,18 @@ export default function DashboardPage() {
                   {/* TIMER */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <div className={cn(
-                      "font-mono text-lg tabular-nums px-2 py-0.5 rounded-md",
+                      "font-mono text-lg tabular-nums px-2 py-0.5 rounded-md flex items-center gap-1.5",
                       isTimerRunning
-                        ? "bg-primary/10 text-primary"
-                        : elapsedSeconds > 0
+                        ? "bg-primary/10 text-primary animate-pulse"
+                        : remainingSeconds < defaultSeconds
                           ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
                           : "text-muted-foreground"
                     )}>
-                      {formatTimer(elapsedSeconds)}
+                      <Clock className="size-4" />
+                      {formatTimer(remainingSeconds)}
                     </div>
                     {!isTimerRunning ? (
-                      <button type="button" onClick={handleStartTimer} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={elapsedSeconds > 0 ? 'Resume' : 'Start'}>
+                      <button type="button" onClick={handleStartTimer} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={remainingSeconds < defaultSeconds ? 'Resume' : 'Start'}>
                         <Play className="size-4" />
                       </button>
                     ) : (
@@ -350,7 +366,7 @@ export default function DashboardPage() {
                         <Square className="size-4" />
                       </button>
                     )}
-                    {elapsedSeconds > 0 && !isTimerRunning && (
+                    {remainingSeconds < defaultSeconds && !isTimerRunning && (
                       <button type="button" onClick={handleResetTimer} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors" title="Reset">
                         <RotateCcw className="size-3.5" />
                       </button>
@@ -402,7 +418,9 @@ export default function DashboardPage() {
                     </PopoverContent>
                   </Popover>
 
-                  <TagInput tags={categories} onChange={setCategories} placeholder="Tags..." className="flex-1 min-w-[120px] max-w-[180px]" />
+                  <div className="flex-1 min-w-[200px] space-y-2">
+                    <TopicInput topics={topics} onChange={setTopics} userTopics={user?.topics} placeholder="Topics..." className="w-full" />
+                  </div>
 
                   <Label className="flex items-center gap-2 cursor-pointer bg-muted hover:bg-accent px-3 py-2 rounded-md transition-all border border-dashed border-border h-10 shrink-0">
                     <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -460,17 +478,17 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Categories Select */}
-        {uniqueCategories.length > 0 && (
+        {/* Topics Select */}
+        {uniqueTopics.length > 0 && (
           <div className="w-full md:w-auto min-w-[150px]">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={topicFilter} onValueChange={setTopicFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder="Topic" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {uniqueCategories.map(c => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                <SelectItem value="all">All Topics</SelectItem>
+                {uniqueTopics.map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -561,10 +579,10 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground line-clamp-4 leading-relaxed text-sm">
                   {note.text || 'No description provided.'}
                 </p>
-                {note.categories && note.categories.length > 0 && (
+                {note.topics && note.topics.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-4">
-                    {note.categories.map(cat => (
-                      <Badge key={cat} variant="secondary" className="text-[10px] px-1.5 py-0 rounded-sm font-normal">#{cat}</Badge>
+                    {note.topics.map(top => (
+                      <Badge key={top} variant="secondary" className="text-[10px] px-1.5 py-0 rounded-sm font-normal">#{top}</Badge>
                     ))}
                   </div>
                 )}
@@ -648,7 +666,7 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(note.title || '');
   const [text, setText] = useState(note.text || '');
-  const [categories, setCategories] = useState<string[]>(note.categories || []);
+  const [topics, setTopics] = useState<string[]>(note.topics || []);
   const [color, setColor] = useState(note.color || '#8dafce');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -657,7 +675,7 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
     if (open) {
       setTitle(note.title || '');
       setText(note.text || '');
-      setCategories(note.categories || []);
+      setTopics(note.topics || []);
       setColor(note.color || '#8dafce');
       setSelectedFile(null);
     }
@@ -666,8 +684,6 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const parsedCategories = categories;
-
       let fileId: string | undefined = undefined;
       if (selectedFile) {
         const { validateFile, uploadFileWithProgress } = await import('../../file-upload/fileUploading');
@@ -689,7 +705,7 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
         id: note.id,
         title,
         text,
-        categories: parsedCategories,
+        topics,
         color,
         ...(fileId && { fileId }),
       });
@@ -761,7 +777,7 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
                 </div>
               </PopoverContent>
             </Popover>
-            <TagInput tags={categories} onChange={setCategories} placeholder="Tags..." className="flex-1 min-w-[120px] max-w-[180px]" />
+            <TopicInput topics={topics} onChange={setTopics} userTopics={useAuth().data?.topics} placeholder="Topics..." className="flex-1" />
           </div>
 
           {/* Image section with action overlay */}
@@ -811,49 +827,68 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
   );
 }
 
-function TagInput({ tags, onChange, placeholder, className }: { tags: string[], onChange: (tags: string[]) => void, placeholder?: string, className?: string }) {
+function TopicInput({ topics, onChange, userTopics, placeholder, className }: { topics: string[], onChange: (topics: string[]) => void, userTopics?: string[], placeholder?: string, className?: string }) {
   const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
-  const addTag = (value: string) => {
+  const addTopic = (value: string) => {
     const trimmed = value.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      onChange([...tags, trimmed]);
+    if (trimmed && !topics.includes(trimmed)) {
+      onChange([...topics, trimmed]);
     }
     setInputValue('');
   };
 
-  const removeTag = (index: number) => {
-    onChange(tags.filter((_, i) => i !== index));
+  const removeTopic = (index: number) => {
+    onChange(topics.filter((_, i) => i !== index));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      addTag(inputValue);
-    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
-      removeTag(tags.length - 1);
+      addTopic(inputValue);
+    } else if (e.key === 'Backspace' && !inputValue && topics.length > 0) {
+      removeTopic(topics.length - 1);
     }
   };
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-1.5 p-1 px-2 border rounded-md bg-background min-h-10 focus-within:ring-1 focus-within:ring-primary/20", className)}>
-      {tags.map((tag, idx) => (
-        <Badge key={idx} variant="secondary" className="gap-1 px-1.5 py-0.5 rounded-sm h-6 text-[10px] font-normal">
-          #{tag}
-          <button type="button" onClick={() => removeTag(idx)} className="hover:text-destructive">
-            <X className="size-3" />
-          </button>
-        </Badge>
-      ))}
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => addTag(inputValue)}
-        placeholder={tags.length === 0 ? placeholder : ''}
-        className="flex-1 bg-transparent border-none outline-none text-sm min-w-[60px] h-6 py-0 px-1"
-      />
+    <div className="w-full relative">
+      <div className={cn("flex flex-wrap items-center gap-1.5 p-1.5 px-3 border-2 border-primary/20 rounded-xl bg-background min-h-12 transition-all", isFocused && "border-primary/50 ring-2 ring-primary/5", className)}>
+        {topics.map((topic, idx) => (
+          <Badge key={idx} variant="default" className="gap-1 px-2 py-1 rounded-md h-7 text-xs font-bold sketch-shadow animate-in scale-in-95">
+            #{topic}
+            <button type="button" onClick={() => removeTopic(idx)} className="hover:text-destructive transition-colors">
+              <X className="size-3.5" />
+            </button>
+          </Badge>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+          placeholder={topics.length === 0 ? placeholder : 'Add more...'}
+          className="flex-1 bg-transparent border-none outline-none text-sm min-w-[80px] h-7 py-0 px-1 focus:ring-0 focus-visible:ring-0 focus:ring-offset-0"
+        />
+      </div>
+
+      {isFocused && userTopics && userTopics.length > 0 && userTopics.some(t => !topics.includes(t)) && (
+        <div className="absolute top-full left-0 w-full z-50 mt-2 p-3 bg-card border-2 border-primary/10 rounded-xl sketch-shadow flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          {userTopics.filter(t => !topics.includes(t)).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => addTopic(t)}
+              className="text-[10px] font-bold px-2 py-1 rounded-lg border border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-primary/70 hover:text-primary"
+            >
+              + {t}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
