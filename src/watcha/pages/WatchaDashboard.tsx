@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useAction } from 'wasp/client/operations';
 import { useAuth } from 'wasp/client/auth';
 import { getNotes, createNote, deleteNote, updateNote, getDownloadFileSignedURL } from 'wasp/client/operations';
 import { SubscriptionStatus } from '../../payment/plans';
 import { Link as WaspRouterLink, routes } from 'wasp/client/router';
-import { Search, Plus, Trash2, Clock, Calendar, Image as ImageIcon, X, Pencil, Bookmark, BookmarkCheck, Play, Square, RotateCcw } from 'lucide-react';
+import { Search, Plus, Trash2, Clock, Calendar, Image as ImageIcon, X, Pencil, Bookmark, BookmarkCheck, Play, Square, RotateCcw, AlertTriangle } from 'lucide-react';
 import { uploadFileWithProgress, validateFile, type FileWithValidType } from '../../file-upload/fileUploading';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
@@ -29,7 +29,7 @@ type Draft = {
   title: string;
   text: string;
   color: string;
-  categoriesInput: string;
+  categories: string[];
   elapsedSeconds: number;
   isTimerRunning: boolean;
   timerStartedAt: number | null; // timestamp
@@ -40,6 +40,10 @@ function loadDraft(): Draft | null {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const draft = JSON.parse(raw) as Draft;
+    // Migration: handle old string format
+    if (typeof (draft as any).categoriesInput === 'string') {
+      draft.categories = (draft as any).categoriesInput.split(',').map((c: string) => c.trim()).filter(Boolean);
+    }
     // Recalculate elapsed if timer was running
     if (draft.isTimerRunning && draft.timerStartedAt) {
       const now = Date.now();
@@ -76,7 +80,7 @@ function formatElapsedReadable(totalSeconds: number): string {
 
 export default function DashboardPage() {
   const { data: user } = useAuth();
-  
+
   const [searchValue, setSearchValue] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [colorFilter, setColorFilter] = useState<string>('all');
@@ -100,7 +104,7 @@ export default function DashboardPage() {
   const [title, setTitle] = useState(initialDraft.current?.title || '');
   const [text, setText] = useState(initialDraft.current?.text || '');
   const [color, setColor] = useState(initialDraft.current?.color || '#8dafce');
-  const [categoriesInput, setCategoriesInput] = useState(initialDraft.current?.categoriesInput || '');
+  const [categories, setCategories] = useState<string[]>(initialDraft.current?.categories || []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -112,14 +116,16 @@ export default function DashboardPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Force form open even if note of the day exists
-  const [forceNewNote, setForceNewNote] = useState(false);
+  // Auto-open if we have a saved draft with content
+  const hasDraftContent = !!(initialDraft.current?.title || initialDraft.current?.text || (initialDraft.current?.elapsedSeconds && initialDraft.current.elapsedSeconds > 0));
+  const [forceNewNote, setForceNewNote] = useState(hasDraftContent);
 
   const dateOfTheDay = new Date().toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
-  
+
   const { data: allNotes } = useQuery(getNotes, {
     search: undefined,
     category: undefined,
@@ -141,22 +147,34 @@ export default function DashboardPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isTimerRunning]);
 
-  // Save draft on every form change
-  const saveDraftDebounced = useCallback(() => {
+  // Save draft on form field changes
+  useEffect(() => {
     saveDraft({
       title,
       text,
       color,
-      categoriesInput,
+      categories,
       elapsedSeconds,
       isTimerRunning,
       timerStartedAt: isTimerRunning ? Date.now() : null,
     });
-  }, [title, text, color, categoriesInput, elapsedSeconds, isTimerRunning]);
+  }, [title, text, color, categories]);
 
   useEffect(() => {
-    saveDraftDebounced();
-  }, [saveDraftDebounced]);
+    if (!isTimerRunning) return;
+    const id = setInterval(() => {
+      saveDraft({
+        title,
+        text,
+        color,
+        categories,
+        elapsedSeconds,
+        isTimerRunning: true,
+        timerStartedAt: Date.now(),
+      });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [isTimerRunning, title, text, color, categories, elapsedSeconds]);
 
   const handleStartTimer = () => {
     setIsTimerRunning(true);
@@ -178,7 +196,7 @@ export default function DashboardPage() {
     setTitle('');
     setText('');
     setColor('#8dafce');
-    setCategoriesInput('');
+    setCategories([]);
     setSelectedFile(null);
     setUploadProgress(0);
     setElapsedSeconds(0);
@@ -190,14 +208,14 @@ export default function DashboardPage() {
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title && !text && !selectedFile) return;
-    
+
     // Stop timer if still running
     handleStopTimer();
-    
+
     setIsUploading(true);
     try {
       let fileId: string | undefined = undefined;
-      
+
       if (selectedFile) {
         const validationError = validateFile(selectedFile);
         if (validationError) {
@@ -205,16 +223,16 @@ export default function DashboardPage() {
           setIsUploading(false);
           return;
         }
-        
-        const result = await uploadFileWithProgress({ 
-          file: selectedFile as FileWithValidType, 
-          setUploadProgressPercent: setUploadProgress 
+
+        const result = await uploadFileWithProgress({
+          file: selectedFile as FileWithValidType,
+          setUploadProgressPercent: setUploadProgress
         });
         // @ts-ignore
         fileId = result.fileId;
       }
 
-      const parsedCategories = categoriesInput.split(',').map(c => c.trim()).filter(Boolean);
+      const parsedCategories = categories;
 
       await createNoteFn({
         title: title || (selectedFile ? 'Image Note' : 'Untitled'),
@@ -264,10 +282,10 @@ export default function DashboardPage() {
           </p>
         </div>
         {user?.subscriptionStatus === SubscriptionStatus.Active ? (
-          <Badge variant="default" className="text-sm px-4 py-1 sketch-shadow border-2">PRO</Badge>
+          <Badge variant="default" className="text-sm px-4 py-1">PRO</Badge>
         ) : (
           <WaspRouterLink to={routes.PricingPageRoute.to}>
-            <Badge variant="secondary" className="text-sm px-4 py-1 cursor-pointer hover:bg-secondary/80 sketch-shadow border-2 transition-transform hover:-translate-y-0.5">
+            <Badge variant="secondary" className="text-sm px-4 py-1 cursor-pointer hover:bg-secondary/80 transition-transform hover:-translate-y-0.5">
               FREE
             </Badge>
           </WaspRouterLink>
@@ -278,7 +296,7 @@ export default function DashboardPage() {
       <section className="mb-12">
         {/* Success banner (always visible when note of the day exists, even with filters) */}
         {noteOfTheDayDone && (
-          <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-dashed border-2 border-amber-300 dark:border-amber-700/50 shadow-none sketch-shadow mb-6">
+          <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-dashed border-amber-300 dark:border-amber-700/50 shadow-none mb-6">
             <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <h2 className="text-xl font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-3">
                 🎉 Your watch of the day is done!
@@ -286,7 +304,7 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 onClick={() => { setForceNewNote(true); resetForm(); }}
-                className="border-2 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 sketch-shadow"
+                className="text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40"
               >
                 <Plus className="size-4 mr-2" />
                 Start another watch
@@ -296,53 +314,51 @@ export default function DashboardPage() {
         )}
 
         {showForm && (
-          <Card className="relative overflow-hidden group sketch-shadow border-2 border-border mb-8">
+          <Card className="relative overflow-hidden group sketch-shadow mb-8">
             <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: color }} />
             <form onSubmit={handleCreateNote}>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between text-2xl text-primary">
-                  <span className="flex items-center gap-2">
-                    <Plus /> New Daily Note
-                  </span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Plus className="size-5 text-primary shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="New Daily Note"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="text-2xl font-extrabold text-primary bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-primary/50 w-full"
+                    />
+                  </div>
                   {/* TIMER */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <div className={cn(
-                      "font-mono text-xl tabular-nums px-3 py-1 rounded-sm border-2",
-                      isTimerRunning 
-                        ? "border-primary bg-primary/10 text-primary animate-pulse" 
-                        : elapsedSeconds > 0 
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
-                          : "border-border text-muted-foreground"
+                      "font-mono text-lg tabular-nums px-2 py-0.5 rounded-md",
+                      isTimerRunning
+                        ? "bg-primary/10 text-primary"
+                        : elapsedSeconds > 0
+                          ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                          : "text-muted-foreground"
                     )}>
                       {formatTimer(elapsedSeconds)}
                     </div>
                     {!isTimerRunning ? (
-                      <Button type="button" variant="outline" size="sm" onClick={handleStartTimer} className="border-2 gap-1">
-                        <Play className="size-3" />
-                        {elapsedSeconds > 0 ? 'Resume' : 'Start'}
-                      </Button>
+                      <button type="button" onClick={handleStartTimer} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={elapsedSeconds > 0 ? 'Resume' : 'Start'}>
+                        <Play className="size-4" />
+                      </button>
                     ) : (
-                      <Button type="button" variant="outline" size="sm" onClick={handleStopTimer} className="border-2 gap-1 border-destructive text-destructive hover:bg-destructive/10">
-                        <Square className="size-3" />
-                        Stop
-                      </Button>
+                      <button type="button" onClick={handleStopTimer} className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors" title="Stop">
+                        <Square className="size-4" />
+                      </button>
                     )}
                     {elapsedSeconds > 0 && !isTimerRunning && (
-                      <Button type="button" variant="ghost" size="sm" onClick={handleResetTimer} className="gap-1 text-muted-foreground">
-                        <RotateCcw className="size-3" />
-                      </Button>
+                      <button type="button" onClick={handleResetTimer} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors" title="Reset">
+                        <RotateCcw className="size-3.5" />
+                      </button>
                     )}
                   </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input
-                  placeholder="What did you learn today?"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-xl font-semibold border-b-2 border-x-0 border-t-0 rounded-none focus-visible:ring-0 px-0 pb-2 shadow-none"
-                />
-                
                 <Textarea
                   placeholder="Add some details, links, or thoughts..."
                   value={text}
@@ -350,24 +366,33 @@ export default function DashboardPage() {
                   className="min-h-[120px] resize-y"
                 />
 
-                <div className="flex flex-col sm:flex-row gap-4 items-center">
-                  <Input 
-                    placeholder="Categories (comma separated)"
-                    value={categoriesInput}
-                    onChange={(e) => setCategoriesInput(e.target.value)}
-                    className="w-full sm:w-48 sm:flex-none border-2"
-                  />
-                  
+                <div className="flex flex-wrap gap-3 items-center">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-10 h-10 rounded-full p-0 flex-shrink-0" style={{ backgroundColor: color }} aria-label="Pick color" />
+                      <Button variant="outline" className="h-10 justify-start px-3">
+                        <span className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-3.5 h-3.5 rounded-full border transition-all",
+                            !PREDEFINED_COLORS.includes(color) ? "border-2 border-dotted border-foreground bg-transparent" : "border-border"
+                          )} style={{ backgroundColor: PREDEFINED_COLORS.includes(color) ? color : 'transparent' }} />
+                          Colors
+                        </span>
+                      </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-2">
-                      <div className="grid grid-cols-4 gap-2">
+                    <PopoverContent className="w-auto p-2" align="start">
+                      <div className="grid grid-cols-4 gap-4 p-1">
+                        <button
+                          className={cn(
+                            "w-6 h-6 rounded-full border-2 border-dotted border-foreground shadow-sm flex items-center justify-center transition-all hover:border-primary hover:scale-110",
+                            !PREDEFINED_COLORS.includes(color) ? "ring-2 ring-primary ring-offset-2 border-solid" : ""
+                          )}
+                          onClick={(e) => { e.preventDefault(); setColor(''); }}
+                          title="No Color"
+                        />
                         {PREDEFINED_COLORS.map(c => (
                           <button
                             key={c}
-                            className={cn("w-6 h-6 rounded-full border border-border shadow-sm hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2", color === c ? "ring-2 ring-primary ring-offset-2" : "")}
+                            className={cn("w-6 h-6 rounded-full border border-border shadow-sm hover:scale-110 focus:outline-none", color === c ? "ring-2 ring-primary ring-offset-2" : "")}
                             style={{ backgroundColor: c }}
                             onClick={(e) => { e.preventDefault(); setColor(c); }}
                             aria-label={`Select color ${c}`}
@@ -376,30 +401,30 @@ export default function DashboardPage() {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  
-                  <div className="w-full sm:w-auto">
-                    <Label className="flex items-center justify-center gap-2 cursor-pointer bg-muted hover:bg-accent px-4 py-2 rounded-md transition-all border border-dashed border-border flex-nowrap h-10 w-full sm:w-48 whitespace-nowrap overflow-hidden">
-                      <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="text-sm font-medium truncate">
-                        {selectedFile ? selectedFile.name : 'Add image'}
-                      </span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      {selectedFile && (
-                        <button 
-                          type="button" 
-                          onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
-                          className="ml-auto text-muted-foreground hover:text-destructive shrink-0"
-                        >
-                          <X className="size-4" />
-                        </button>
-                      )}
-                    </Label>
-                  </div>
+
+                  <TagInput tags={categories} onChange={setCategories} placeholder="Tags..." className="flex-1 min-w-[120px] max-w-[180px]" />
+
+                  <Label className="flex items-center gap-2 cursor-pointer bg-muted hover:bg-accent px-3 py-2 rounded-md transition-all border border-dashed border-border h-10 shrink-0">
+                    <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm font-medium truncate max-w-[120px]">
+                      {selectedFile ? selectedFile.name : 'Add image'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                    {selectedFile && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
+                        className="ml-auto text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    )}
+                  </Label>
                 </div>
                 {uploadProgress > 0 && <Progress value={uploadProgress} className='w-full h-2' />}
               </CardContent>
@@ -438,7 +463,7 @@ export default function DashboardPage() {
         {/* Categories Select */}
         {uniqueCategories.length > 0 && (
           <div className="w-full md:w-auto min-w-[150px]">
-             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -456,22 +481,26 @@ export default function DashboardPage() {
         <div className="w-full md:w-auto">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start md:w-[140px] px-3">
-                <span className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colorFilter === 'all' ? 'transparent' : colorFilter, border: colorFilter === 'all' ? '1px dashed currentColor' : 'none' }} />
-                  {colorFilter === 'all' ? 'All Colors' : 'Color Filter'}
+              <Button variant="outline" className="w-full justify-start md:w-[120px] px-3">
+                <span className="flex items-center gap-2 text-sm">
+                  <div className={cn(
+                    "w-3.5 h-3.5 rounded-full border transition-all flex items-center justify-center",
+                    colorFilter === 'all' ? "border-2 border-dotted border-foreground bg-transparent" : "border-solid border-border"
+                  )} style={{ backgroundColor: colorFilter === 'all' ? 'transparent' : colorFilter }} />
+                  Colors
                 </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-2">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-4 p-1">
                 <button
-                   className={cn("w-6 h-6 rounded-full border border-dashed border-border shadow-sm flex items-center justify-center text-[10px]", colorFilter === 'all' ? "ring-2 ring-primary ring-offset-2" : "")}
-                   onClick={() => setColorFilter('all')}
-                   title="All Colors"
-                >
-                  All
-                </button>
+                  className={cn(
+                    "w-6 h-6 rounded-full border-2 border-dotted border-foreground shadow-sm flex items-center justify-center transition-all hover:border-primary hover:scale-110",
+                    colorFilter === 'all' ? "ring-2 ring-primary ring-offset-2 border-solid" : ""
+                  )}
+                  onClick={() => setColorFilter('all')}
+                  title="Any Color"
+                />
                 {PREDEFINED_COLORS.map(c => (
                   <button
                     key={c}
@@ -517,16 +546,14 @@ export default function DashboardPage() {
                     {note.isBookmark ? <BookmarkCheck className="text-yellow-500 size-4" /> : <Bookmark className="size-4" />}
                   </button>
                   <EditNoteDialog note={note} updateNoteFn={updateNoteFn} />
-                  <button onClick={() => deleteNoteFn({ id: note.id })} className="p-1.5 text-muted-foreground hover:text-destructive rounded-full hover:bg-destructive/10 transition-colors" title="Delete Note">
-                    <Trash2 className="size-4" />
-                  </button>
+                  <DeleteNoteButton noteId={note.id} noteTitle={note.title} deleteNoteFn={deleteNoteFn} />
                 </div>
               </CardHeader>
-              
+
               <CardContent className="px-5 pb-5 flex-grow">
                 {/* @ts-ignore */}
                 {note.file && (
-                  <div className="mb-4 py-2 rounded-xl overflow-hidden border border-border aspect-video bg-muted flex items-center justify-center">
+                  <div className="mb-4 mt-2 rounded-xl overflow-hidden border border-border aspect-video bg-muted flex items-center justify-center">
                     {/* @ts-ignore */}
                     <NoteImage fileKey={note.file.key} title={note.title} />
                   </div>
@@ -542,7 +569,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </CardContent>
-              
+
               <CardFooter className="px-5 py-3 border-t border-border bg-muted/20 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground mt-auto">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="size-3" />
@@ -565,7 +592,7 @@ export default function DashboardPage() {
 
 const NoteImage = ({ fileKey, title }: { fileKey: string; title?: string | null }) => {
   const { data: downloadUrl, isLoading } = useQuery(getDownloadFileSignedURL, { key: fileKey });
-  
+
   if (isLoading || !downloadUrl) {
     return <div className="w-full h-full bg-muted animate-pulse flex items-center justify-center">
       <ImageIcon className="size-6 text-muted-foreground/30" />
@@ -573,9 +600,9 @@ const NoteImage = ({ fileKey, title }: { fileKey: string; title?: string | null 
   }
 
   return (
-    <img 
-      src={downloadUrl} 
-      className="w-full h-full object-cover transition-opacity duration-500" 
+    <img
+      src={downloadUrl}
+      className="w-full h-full object-cover transition-opacity duration-500"
       alt={title || 'Note image'}
       onLoad={(e) => (e.currentTarget.style.opacity = '1')}
       style={{ opacity: 0 }}
@@ -583,33 +610,88 @@ const NoteImage = ({ fileKey, title }: { fileKey: string; title?: string | null 
   );
 };
 
+function DeleteNoteButton({ noteId, noteTitle, deleteNoteFn }: { noteId: string; noteTitle?: string | null; deleteNoteFn: any }) {
+  const [open, setOpen] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    await deleteNoteFn({ id: noteId });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="p-1.5 text-muted-foreground hover:text-destructive rounded-full hover:bg-destructive/10 transition-colors" title="Delete Note">
+          <Trash2 className="size-4" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="size-5" />
+            Delete Note
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground py-2">
+          Are you sure you want to delete <strong className="text-foreground">"{noteTitle || 'Untitled'}"</strong>? This action cannot be undone.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(note.title || '');
   const [text, setText] = useState(note.text || '');
-  const [categoriesInput, setCategoriesInput] = useState((note.categories || []).join(', '));
+  const [categories, setCategories] = useState<string[]>(note.categories || []);
   const [color, setColor] = useState(note.color || '#8dafce');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   React.useEffect(() => {
     if (open) {
       setTitle(note.title || '');
       setText(note.text || '');
-      setCategoriesInput((note.categories || []).join(', '));
+      setCategories(note.categories || []);
       setColor(note.color || '#8dafce');
+      setSelectedFile(null);
     }
   }, [open, note]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const parsedCategories = categoriesInput.split(',').map((c: string) => c.trim()).filter(Boolean);
+      const parsedCategories = categories;
+
+      let fileId: string | undefined = undefined;
+      if (selectedFile) {
+        const { validateFile, uploadFileWithProgress } = await import('../../file-upload/fileUploading');
+        const validationError = validateFile(selectedFile);
+        if (validationError) {
+          alert(validationError.message);
+          setIsSaving(false);
+          return;
+        }
+        const result = await uploadFileWithProgress({
+          file: selectedFile as any,
+          setUploadProgressPercent: () => {},
+        });
+        // @ts-ignore
+        fileId = result.fileId;
+      }
+
       await updateNoteFn({
         id: note.id,
         title,
         text,
         categories: parsedCategories,
         color,
+        ...(fileId && { fileId }),
       });
       setOpen(false);
     } catch (err) {
@@ -627,35 +709,46 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
           <Pencil className="size-4" />
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Note</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Input 
-            value={title} 
-            onChange={e => setTitle(e.target.value)} 
+          <Input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
             placeholder="Title"
             className="text-lg font-bold"
           />
-          <Textarea 
-            value={text} 
-            onChange={e => setText(e.target.value)} 
+          <Textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
             placeholder="Content"
-            className="min-h-[150px]"
+            className="min-h-[200px]"
           />
-          <div className="flex gap-4">
-            <Input 
-              value={categoriesInput} 
-              onChange={e => setCategoriesInput(e.target.value)} 
-              placeholder="Categories (comma separated)"
-            />
+          <div className="flex flex-wrap gap-3 items-center">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-10 h-10 rounded-full p-0 flex-shrink-0" style={{ backgroundColor: color }} aria-label="Pick color" />
+                <Button variant="outline" className="h-10 justify-start px-3">
+                  <span className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-3.5 h-3.5 rounded-full border transition-all flex items-center justify-center",
+                      !PREDEFINED_COLORS.includes(color) ? "border-2 border-dotted border-foreground bg-transparent" : "border-border"
+                    )} style={{ backgroundColor: PREDEFINED_COLORS.includes(color) ? color : 'transparent' }} />
+                    Colors
+                  </span>
+                </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-2" align="end">
-                <div className="grid grid-cols-4 gap-2">
+              <PopoverContent className="w-auto p-2" align="start">
+                <div className="grid grid-cols-4 gap-4 p-1">
+                  <button
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 border-dotted border-foreground shadow-sm flex items-center justify-center transition-all hover:border-primary hover:scale-110",
+                      !PREDEFINED_COLORS.includes(color) ? "ring-2 ring-primary ring-offset-2 border-solid" : ""
+                    )}
+                    onClick={(e) => { e.preventDefault(); setColor(''); }}
+                    title="No Color"
+                  />
                   {PREDEFINED_COLORS.map(c => (
                     <button
                       key={c}
@@ -668,13 +761,99 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
                 </div>
               </PopoverContent>
             </Popover>
+            <TagInput tags={categories} onChange={setCategories} placeholder="Tags..." className="flex-1 min-w-[120px] max-w-[180px]" />
           </div>
+
+          {/* Image section with action overlay */}
+          {/* @ts-ignore */}
+          {note.file && (
+            <div className="relative rounded-lg overflow-hidden border border-border aspect-video bg-muted flex items-center justify-center max-h-[200px] group/img">
+              {!selectedFile ? (
+                <>
+                  {/* @ts-ignore */}
+                  <NoteImage fileKey={note.file.key} title={note.title} />
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                    <label className="p-1.5 bg-background/80 backdrop-blur-sm rounded-full cursor-pointer hover:bg-background text-muted-foreground hover:text-primary transition-colors border border-border shadow-sm" title="Change image">
+                      <Pencil className="size-3.5" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => updateNoteFn({ id: note.id, removeImage: true }).then(() => setOpen(false))}
+                      className="p-1.5 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background text-muted-foreground hover:text-destructive transition-colors border border-border shadow-sm"
+                      title="Remove image"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <ImageIcon className="size-8 text-primary/50" />
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <button type="button" onClick={() => setSelectedFile(null)} className="text-xs text-destructive hover:underline">Cancel</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={isSaving}>Save Changes</Button>
+          <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TagInput({ tags, onChange, placeholder, className }: { tags: string[], onChange: (tags: string[]) => void, placeholder?: string, className?: string }) {
+  const [inputValue, setInputValue] = useState('');
+
+  const addTag = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onChange([...tags, trimmed]);
+    }
+    setInputValue('');
+  };
+
+  const removeTag = (index: number) => {
+    onChange(tags.filter((_, i) => i !== index));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      addTag(inputValue);
+    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      removeTag(tags.length - 1);
+    }
+  };
+
+  return (
+    <div className={cn("flex flex-wrap items-center gap-1.5 p-1 px-2 border rounded-md bg-background min-h-10 focus-within:ring-1 focus-within:ring-primary/20", className)}>
+      {tags.map((tag, idx) => (
+        <Badge key={idx} variant="secondary" className="gap-1 px-1.5 py-0.5 rounded-sm h-6 text-[10px] font-normal">
+          #{tag}
+          <button type="button" onClick={() => removeTag(idx)} className="hover:text-destructive">
+            <X className="size-3" />
+          </button>
+        </Badge>
+      ))}
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => addTag(inputValue)}
+        placeholder={tags.length === 0 ? placeholder : ''}
+        className="flex-1 bg-transparent border-none outline-none text-sm min-w-[60px] h-6 py-0 px-1"
+      />
+    </div>
   );
 }

@@ -156,10 +156,11 @@ type UpdateNoteArgs = {
   categories?: string[];
   color?: string;
   isBookmark?: boolean;
-  urlImage?: string;
+  fileId?: string;
+  removeImage?: boolean;
 };
 
-export const updateNote: UpdateNote<UpdateNoteArgs, PostNote> = async ({ id, ...updateData }, context) => {
+export const updateNote: UpdateNote<UpdateNoteArgs, PostNote> = async ({ id, fileId, removeImage, ...updateData }, context) => {
   if (!context.user) throw new HttpError(401, 'User must be logged in');
 
   // Verify ownership
@@ -170,7 +171,11 @@ export const updateNote: UpdateNote<UpdateNoteArgs, PostNote> = async ({ id, ...
 
   return context.entities.PostNote.update({
     where: { id },
-    data: updateData,
+    data: {
+      ...updateData,
+      ...(fileId && { file: { connect: { id: fileId } } }),
+      ...(removeImage && { file: { disconnect: true } }),
+    },
   });
 };
 

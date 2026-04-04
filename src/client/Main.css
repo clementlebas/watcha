@@ -134,10 +134,10 @@
     --success-foreground: 0 0% 98%;
     --warning: 36 100% 50%;
     --warning-foreground: 0 0% 98%;
-    --border: 0.15 0.01 260;
-    --input: 0.15 0.01 260;
-    --ring: 0.15 0.01 260;
-    --radius: 0.15rem;
+    --border: 0.82 0.01 260;
+    --input: 0.82 0.01 260;
+    --ring: 0.50 0.01 260;
+    --radius: 0.5rem;
     --chart-1: 0.828 0.111 230.318;
     --chart-2: 0.685 0.169 237.323;
     --chart-3: 0.588 0.158 241.966;
@@ -213,10 +213,10 @@
 
   /* Custom Utils for Notebook Look */
   .sketch-shadow {
-    box-shadow: 4px 4px 0px 0px var(--color-foreground, #000);
+    box-shadow: 2px 2px 0px 0px oklch(0.15 0.01 260 / 0.15);
   }
   .dark .sketch-shadow {
-    box-shadow: 4px 4px 0px 0px var(--color-primary, #fff);
+    box-shadow: 2px 2px 0px 0px oklch(0.90 0.01 90 / 0.12);
   }
 }
 

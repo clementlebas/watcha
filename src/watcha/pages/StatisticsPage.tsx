@@ -70,7 +70,7 @@ export default function StatisticsPage() {
 
       {/* KPIs */}
       {stats.totalNotes === 0 ? (
-        <Card className="sketch-shadow border-2 border-dashed border-border p-12 text-center">
+        <Card className="sketch-shadow border-dashed border-border p-12 text-center">
           <CardContent>
             <p className="text-2xl font-semibold text-muted-foreground">No watches started yet.</p>
             <p className="text-muted-foreground mt-2">Create your first note to see your statistics here!</p>
@@ -102,7 +102,7 @@ export default function StatisticsPage() {
           {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             {/* PIE: Time by Category */}
-            <Card className="sketch-shadow border-2">
+            <Card className="sketch-shadow">
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">🏷️ Time by Category</CardTitle>
               </CardHeader>
@@ -155,7 +155,7 @@ export default function StatisticsPage() {
             </Card>
 
             {/* BAR: Activity Timeline */}
-            <Card className="sketch-shadow border-2">
+            <Card className="sketch-shadow">
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">📅 Activity (Last 30 Days)</CardTitle>
               </CardHeader>
@@ -216,7 +216,7 @@ export default function StatisticsPage() {
 
 function KpiCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
   return (
-    <Card className="sketch-shadow border-2 hover:-translate-y-1 transition-transform duration-200">
+    <Card className="sketch-shadow hover:-translate-y-1 transition-transform duration-200">
       <CardContent className="p-6 flex items-center gap-5">
         <div className={`p-3 rounded-sm ${accent}`}>
           {icon}
@@ -241,7 +241,7 @@ function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="sketch-shadow border-2 px-8 py-6 text-lg font-bold hover:-translate-y-1 transition-transform">
+        <Button variant="outline" className="sketch-shadow px-8 py-6 text-lg font-bold hover:-translate-y-1 transition-transform">
           <CreditCard className="mr-3 size-5" />
           Generate Watcha Card
         </Button>
@@ -252,7 +252,7 @@ function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
         </DialogHeader>
 
         {/* Card Visual */}
-        <div className="mx-auto w-full max-w-sm border-2 border-foreground rounded-sm sketch-shadow bg-card p-6 space-y-5">
+        <div className="mx-auto w-full max-w-sm border border-foreground rounded-sm sketch-shadow bg-card p-6 space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b-2 border-dashed border-border pb-4">
             <div>
@@ -270,11 +270,11 @@ function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="border-2 border-border rounded-sm p-3 text-center">
+            <div className="border border-border rounded-sm p-3 text-center">
               <p className="text-2xl font-extrabold">{totalNotes}</p>
               <p className="text-xs text-muted-foreground">Total Watches</p>
             </div>
-            <div className="border-2 border-border rounded-sm p-3 text-center">
+            <div className="border border-border rounded-sm p-3 text-center">
               <p className="text-2xl font-extrabold">{averageMinutes}<span className="text-sm font-normal">min</span></p>
               <p className="text-xs text-muted-foreground">Avg. Time</p>
             </div>
@@ -286,7 +286,7 @@ function WatchaCardDialog({ totalNotes, averageMinutes, topTags, username }: {
               <p className="text-sm text-muted-foreground">Favorite Tags</p>
               <div className="flex flex-wrap gap-2">
                 {topTags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="border-2 text-xs">
+                  <Badge key={tag} variant="secondary" className="text-xs">
                     #{tag}
                   </Badge>
                 ))}
