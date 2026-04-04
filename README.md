@@ -14,3 +14,4 @@ This template includes [ShadCN UI](https://ui.shadcn.com/) v2 for beautiful, acc
  - Run `wasp start` and leave it running.
  - [OPTIONAL]: If this is the first time starting the app, or you've just made changes to your entities/prisma schema, also run `wasp db migrate-dev`.
 
+# watcha v2
