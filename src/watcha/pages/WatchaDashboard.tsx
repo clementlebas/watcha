@@ -20,8 +20,35 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { Progress } from '../../components/ui/progress';
 import { cn } from '../../lib/utils';
 import { Label } from '../../components/ui/label';
+import NotionEditor from '../components/LexicalEditor/NotionEditor';
 
 const PREDEFINED_COLORS = ['#8dafce', '#f87171', '#fb923c', '#facc15', '#4ade80', '#a78bfa', '#f472b6', '#94a3b8'];
+
+function getPlainTextFromLexical(jsonString: string | null | undefined): string {
+  if (!jsonString) return '';
+  
+  // Rapide check si c'est du JSON Lexical
+  if (!jsonString.trim().startsWith('{"root"')) {
+    return jsonString;
+  }
+
+  try {
+    const json = JSON.parse(jsonString);
+    
+    // Fonction récursive pour extraire le texte de l'arbre Lexical
+    const extractText = (node: any): string => {
+      if (node.text) return node.text;
+      if (node.children) {
+        return node.children.map(extractText).join(' ');
+      }
+      return '';
+    };
+
+    return extractText(json.root).trim();
+  } catch (e) {
+    return jsonString;
+  }
+}
 
 const DRAFT_KEY = 'watcha-note-draft';
 
@@ -116,6 +143,7 @@ export default function DashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
 
   // Timer state
   const defaultSeconds = (user?.defaultTimer || 25) * 60;
@@ -215,6 +243,7 @@ export default function DashboardPage() {
     setSelectedFile(null);
     setUploadProgress(0);
     setRemainingSeconds(defaultSeconds);
+    setEditorKey(prev => prev + 1); // Reset de l'éditeur
     setIsTimerRunning(false);
     setTimerStartedAt(null);
     clearDraft();
@@ -375,12 +404,20 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
-                  placeholder="Add some details, links, or thoughts..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="min-h-[120px] resize-y"
-                />
+                <div className="min-h-[500px]">
+                  <NotionEditor 
+                    key={editorKey}
+                    initialValue={text} 
+                    onChange={setText} 
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {topics.length === 0 && <Plus className="size-4 text-primary shrink-0" />}
+                  <div className="flex-1 min-w-[200px]">
+                    <TopicInput topics={topics} onChange={setTopics} userTopics={user?.topics} placeholder="Topics..." className="w-full" />
+                  </div>
+                </div>
 
                 <div className="flex flex-wrap gap-3 items-center">
                   <Popover>
@@ -417,10 +454,6 @@ export default function DashboardPage() {
                       </div>
                     </PopoverContent>
                   </Popover>
-
-                  <div className="flex-1 min-w-[200px] space-y-2">
-                    <TopicInput topics={topics} onChange={setTopics} userTopics={user?.topics} placeholder="Topics..." className="w-full" />
-                  </div>
 
                   <Label className="flex items-center gap-2 cursor-pointer bg-muted hover:bg-accent px-3 py-2 rounded-md transition-all border border-dashed border-border h-10 shrink-0">
                     <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -577,7 +610,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <p className="text-muted-foreground line-clamp-4 leading-relaxed text-sm">
-                  {note.text || 'No description provided.'}
+                  {getPlainTextFromLexical(note.text) || 'No description provided.'}
                 </p>
                 {note.topics && note.topics.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-4">
@@ -736,12 +769,20 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
             placeholder="Title"
             className="text-lg font-bold"
           />
-          <Textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder="Content"
-            className="min-h-[200px]"
-          />
+          <div className="min-h-[300px] border rounded-md overflow-hidden">
+            <NotionEditor
+              key={open ? 'active' : 'inactive'}
+              initialValue={text}
+              onChange={setText}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            {topics.length === 0 && <Plus className="size-4 text-primary shrink-0" />}
+            <div className="flex-1 min-w-[200px]">
+              <TopicInput topics={topics} onChange={setTopics} userTopics={useAuth().data?.topics} placeholder="Topics..." className="w-full" />
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-3 items-center">
             <Popover>
               <PopoverTrigger asChild>
@@ -777,7 +818,6 @@ function EditNoteDialog({ note, updateNoteFn }: { note: any, updateNoteFn: any }
                 </div>
               </PopoverContent>
             </Popover>
-            <TopicInput topics={topics} onChange={setTopics} userTopics={useAuth().data?.topics} placeholder="Topics..." className="flex-1" />
           </div>
 
           {/* Image section with action overlay */}
@@ -854,9 +894,9 @@ function TopicInput({ topics, onChange, userTopics, placeholder, className }: { 
 
   return (
     <div className="w-full relative">
-      <div className={cn("flex flex-wrap items-center gap-1.5 p-1.5 px-3 border-2 border-primary/20 rounded-xl bg-background min-h-12 transition-all", isFocused && "border-primary/50 ring-2 ring-primary/5", className)}>
+      <div className={cn("flex flex-wrap items-center gap-1.5 p-1.5 px-0 min-h-10 transition-all", className)}>
         {topics.map((topic, idx) => (
-          <Badge key={idx} variant="default" className="gap-1 px-2 py-1 rounded-md h-7 text-xs font-bold sketch-shadow animate-in scale-in-95">
+          <Badge key={idx} variant="secondary" className="gap-1 px-2 py-1 rounded-md h-7 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 border-none">
             #{topic}
             <button type="button" onClick={() => removeTopic(idx)} className="hover:text-destructive transition-colors">
               <X className="size-3.5" />
@@ -876,7 +916,7 @@ function TopicInput({ topics, onChange, userTopics, placeholder, className }: { 
       </div>
 
       {isFocused && userTopics && userTopics.length > 0 && userTopics.some(t => !topics.includes(t)) && (
-        <div className="absolute top-full left-0 w-full z-50 mt-2 p-3 bg-card border-2 border-primary/10 rounded-xl sketch-shadow flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 w-full z-50 mt-1 p-2 bg-white dark:bg-zinc-950 border-none rounded-md shadow-lg flex flex-wrap gap-2">
           {userTopics.filter(t => !topics.includes(t)).map(t => (
             <button
               key={t}

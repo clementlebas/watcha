@@ -1,5 +1,4 @@
 import { createFile } from 'wasp/client/operations';
-import axios from 'axios';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE_BYTES } from './validation';
 
 export type FileWithValidType = Omit<File, 'type'> & { type: AllowedFileType };
@@ -11,11 +10,11 @@ interface FileUploadProgress {
 
 export async function uploadFileWithProgress({ file, setUploadProgressPercent }: FileUploadProgress) {
   // @ts-ignore
-  const { s3UploadUrl, s3UploadFields, fileId } = await createFile({ fileType: file.type, fileName: file.name });
+  const { s3UploadUrl, s3UploadFields, fileId, key } = await createFile({ fileType: file.type, fileName: file.name });
 
   const formData = getFileUploadFormData(file, s3UploadFields);
 
-  return new Promise<{ fileId: string }>((resolve, reject) => {
+  return new Promise<{ fileId: string; key: string }>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
     xhr.upload.onprogress = (event) => {
@@ -27,7 +26,7 @@ export async function uploadFileWithProgress({ file, setUploadProgressPercent }:
 
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ fileId });
+        resolve({ fileId, key });
       } else {
         reject(new Error(`Upload failed with status ${xhr.status}`));
       }
@@ -40,9 +39,6 @@ export async function uploadFileWithProgress({ file, setUploadProgressPercent }:
     xhr.open('POST', s3UploadUrl, true);
     xhr.send(formData);
   });
-
-  // @ts-ignore
-  return { fileId };
 }
 
 function getFileUploadFormData(file: File, s3UploadFields: Record<string, string>) {

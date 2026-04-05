@@ -52,6 +52,7 @@ export const createFile: CreateFile<
     s3UploadUrl,
     s3UploadFields,
     fileId: file.id,
+    key, // On renvoie la clé pour que le client puisse l'utiliser directement (ex: Lexical ImageNode)
   };
 };
 
